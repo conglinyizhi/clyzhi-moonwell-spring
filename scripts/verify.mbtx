@@ -1,0 +1,101 @@
+///|
+/// Moonwell Spring 验证脚本
+/// 检查本技能追踪内容与当前 moon 版本是否匹配。
+/// 运行：moon run scripts/verify.mbtx --target native
+import {
+  "moonbitlang/async@0.20.2/process",
+  "moonbitlang/async@0.20.2/stdio",
+}
+
+///| line("") + line(str)
+fn line(self : StringBuilder, str : StringView) -> StringBuilder {
+  ignore(self.write_string(str))
+  ignore(self.write_char('\n'))
+  self
+}
+
+///|
+async fn check(
+  name : String,
+  expected : String,
+  check : () -> (String, Bool),
+) -> Unit {
+  let (actual, ok) = check()
+  let buf = StringBuilder::new()
+  buf..line("")..line(if ok { "[PASS]" } else { "[FAIL]" } + " \{name}")
+  buf..line("       expected: \{expected}")
+  buf..line("       actual:   \{actual}")
+  @stdio.stdout.write_string(buf.to_string())
+}
+
+///|
+async fn main {
+  // 1. 版本匹配
+  check(
+    "moon version",
+    "0.1.20260626",
+    () => {
+      let (_, out) = @process.collect_stdout("moon", ["version"])
+      let text = out.read_to_end().to_string().trim()
+      (text, text.contains("0.1.20260626"))
+    },
+  )
+
+  // 2. 属性数量 ≥ 18
+  check(
+    "moon explain --attribute count",
+    "≥ 18",
+    () => {
+      let (_, out) = @process.collect_stdout("moon", ["explain", "--attribute"])
+      let text = out.read_to_end().to_string()
+      let count = 0
+      for line in text.split("\n") {
+        if line.trim_start().starts_with("#") {
+          count = count + 1
+        }
+      }
+      (count.to_string(), count >= 18)
+    },
+  )
+
+  // 3. 命令数量 ≥ 27
+  check(
+    "moon --help command count",
+    "≥ 27",
+    () => {
+      let (_, out) = @process.collect_stdout("moon", ["--help"])
+      let text = out.read_to_end().to_string()
+      let count = 0
+      for line in text.split("\n") {
+        if line.trim_start().substring(end=2) is "  " && line.trim().length() > 0 && !line.starts_with("    ") {
+          count = count + 1
+        }
+      }
+      (count.to_string(), count >= 27)
+    },
+  )
+
+  // 4. moon.mod 新格式生效
+  check(
+    "moon new creates moon.mod",
+    "moon.mod (not moon.mod.json)",
+    () => {
+      let (_, out) = @process.collect_stdout("moon", ["new", "--help"])
+      let text = out.read_to_end().to_string()
+      let found = text.contains("moon.mod")
+      (if found { "moon.mod found" } else { "moon.mod NOT found" }, found)
+    },
+  )
+
+  // 5. moon.work 存在
+  check(
+    "moon work --help",
+    "contains 'init'",
+    () => {
+      let (_, out) = @process.collect_stdout("moon", ["work", "--help"])
+      let text = out.read_to_end().to_string()
+      let found = text.contains("init")
+      (if found { "init found" } else { "init NOT found" }, found)
+    },
+  )
+}

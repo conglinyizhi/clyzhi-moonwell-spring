@@ -203,3 +203,27 @@ moon -Z <FEATURE_NAME> check   # 启用不稳定特性
 
 当前启用的 feature flags：`rr_moon_mod`、`rr_moon_pkg`。
 
+---
+
+### 十七、.mbtx + @async/process 子进程调用
+
+官方 `moonbit-agent-guide` 的 .mbtx 和 async 章节未提及 `@async/process` 子包。`.mbtx` 脚本可以通过 `@async/process` 调用系统命令并捕获输出，实现跨平台脚本（Windows/Linux/macOS）。
+
+mbtx 依赖声明：
+```mbt
+import {
+  "moonbitlang/async@0.20.2/process",
+  "moonbitlang/async@0.20.2/stdio",
+}
+```
+
+关键 API：
+```mbt
+@process.collect_stdout("moon", ["version"])     // → (exit_code, stdout_bytes)
+@process.collect_stderr("moon", ["check"])       // → (exit_code, stderr_bytes)
+@process.collect_output("moon", ["test"])        // → (exit_code, stdout, stderr)
+@process.run("moon", ["build"])                  // → exit_code
+```
+
+来源：[moonbitlang/async/src/process](https://github.com/moonbitlang/async/tree/main/src/process)
+

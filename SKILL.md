@@ -24,8 +24,8 @@ last_updated: "2026-07-19"
 - 配置 `moon.mod`、`moon.pkg`、`moon.work`
 - 执行 `moon check`、`moon build`、`moon test`、`moon run`、`moon fmt`、`moon new`
 - 使用 `moon work`、`moon prove`、`moon runwasm`、`moon fetch`
-- 涉及 C FFI 绑定、形式化验证、WASM 编译目标
-- 用户要求「更新 moonbit-hotfix」或 moon 版本升级后
+- 涉及 C FFI 绑定、形式化验证、WASM 编译目标、`.mbtx` 脚本
+- 用户要求「更新 moonwell-spring」或 moon 版本升级后
 
 ---
 
@@ -35,48 +35,18 @@ last_updated: "2026-07-19"
 
 ### 模式 A：知识覆盖（默认，每次加载）
 
-Agent 加载本技能后，以下补丁内容自动覆盖官方技能的对应条目。无需用户额外操作。
+Agent 加载本技能后，补丁内容自动覆盖官方技能的对应条目。日常加载用精简索引 `references/patches.min.md`，需要详情时按条目编号查阅 `references/patches.md`。
 
 ### 模式 B：版本更新（用户触发）
 
-当用户说「更新 moonwell-spring」或 moon 版本变化时，执行更新工作流。完整步骤见：
-
-→ **`references/update-workflow.md`**（5 Phase：版本检测 → 拉取变更 → 差异分析 → 增量检查 → 更新文档）
-
-摘要：
-```bash
-moon version                          # Phase 1: 检测版本
-moon --help && moon <cmd> --help      # Phase 2: 拉取变更
-gh release list --repo moonbitlang/moon
-# Phase 3: 按差异类型生成/更新补丁条目
-# Phase 4: 如版本未变，仅检查官方 skills 仓库
-# Phase 5: 更新 frontmatter + 补丁条目 + commit
-```
+当用户说「更新 moonwell-spring」或 moon 版本变化时执行。5 Phase：版本检测 → 拉取 GitHub Release / Blog / 文档 / 官方 skills → 差异分析 → 增量检查 → 更新本文档。完整步骤见 `references/update-workflow.md`。
 
 ---
 
 ## 补丁内容
 
-见 **`references/patches.md`**。共 16 个补丁条目：
-
-| # | 条目 | 类型 |
-|:--|:--|:--|
-| 一 | 配置文件格式迁移（moon.mod / moon.pkg） | 格式变更 |
-| 二 | moon.work 工作空间 | 新特性 |
-| 三 | moon runwasm | 新命令 |
-| 四 | declare 关键字（替代 #declaration_only） | 写法规范 |
-| 五 | json_inspect() 写法 | 写法规范 |
-| 六 | 属性完整列表（18 个） | 补充 |
-| 七 | moon coverage 完整子命令 | 补充 |
-| 八 | moon prove（Why3 验证） | 新命令 |
-| 九 | moon explain | 补充 |
-| 十 | moon fetch | 新命令 |
-| 十一 | moon run --profile | 补充 |
-| 十二 | .mbtx 脚本 | 新特性 |
-| 十三 | WASM Component Model | 新特性 |
-| 十四 | moon package --list | 补充 |
-| 十五 | moon check --output-json | 补充 |
-| 十六 | --unstable-feature / -Z | 补充 |
+→ 精简索引：**`references/patches.min.md`**（17 条目索引 + 官方信息来源 + 官方技能对照）
+→ 完整详情：**`references/patches.md`**（17 条目详细说明）
 
 ---
 
@@ -86,34 +56,28 @@ gh release list --repo moonbitlang/moon
 - `moon ide doc` 是 API 发现的首选方式，比文本搜索更准确
 - moon.work 仍在迭代中（3 个 open issue），单模块仓库暂不需要
 - `moon.mod.json` → `moon.mod` 迁移不可逆，`moon fmt` 后本地路径依赖会丢失——提前用 `moon.work` 替代
-- 官方技能对照：
-
-| 官方技能 | 主要问题 |
-|:--|:--|
-| `moonbit-agent-guide` | 缺 moon.work / runwasm / .mbtx / Component Model |
-| `moonbit-c-binding` | Phase 1 用 `moon.mod.json`；`supported_targets` 数组写法 |
-| `moonbit-orientation` | references 无 moon.work / runwasm |
-| `moonbit-spec-test-development` | `#declaration_only` → `declare`；`@json.inspect()` → `json_inspect()`；引用旧格式 |
+- `.mbtx` 脚本可通过 `@async/process` 进行跨平台子进程调用，官方技能未提此能力（补丁十七）
 
 ---
 
 ## 验证
 
-以下命令确认本技能追踪内容与当前 moon 版本匹配。全部通过 = 技能新鲜。
+运行跨平台验证脚本（需要 `moon` + `moonbitlang/async`）：
 
 ```bash
-# 1. 版本匹配
-moon version | grep -q "0.1.20260626" && echo "✅ 版本匹配" || echo "❌ 版本不一致，需要更新"
-
-# 2. 属性数量（≥18）
-[ $(moon explain --attribute 2>&1 | grep -c '^  #') -ge 18 ] && echo "✅ 属性 ≥18" || echo "❌ 属性减少"
-
-# 3. 命令数量（≥27）
-[ $(moon --help 2>&1 | grep -cP '^\s{2}\w') -ge 27 ] && echo "✅ 命令 ≥27" || echo "❌ 命令减少"
-
-# 4. 新格式生效
-moon new --help 2>&1 | grep -q 'moon.mod' && echo "✅ 新格式生效" || echo "❌ 格式可能已变"
-
-# 5. moon.work 存在
-moon work --help 2>&1 | grep -q 'init' && echo "✅ moon.work 可用" || echo "❌ moon.work 状态变化"
+moon run scripts/verify.mbtx --target native
 ```
+
+输出格式：
+
+```text
+[PASS] moon version
+       expected: 0.1.20260626
+       actual:   0.1.20260626
+
+[FAIL] moon --help command count
+       expected: ≥ 27
+       actual:   3
+```
+
+5 项检查全部 [PASS] = 技能新鲜。
