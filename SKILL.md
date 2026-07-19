@@ -1,5 +1,5 @@
 ---
-name: moonbit-hotfix-skills
+name: clyzhi-moonwell-spring
 description: >
   MoonBit 官方技能热修复层。**必须与官方 moonbit-* 技能同时加载，不可单独使用。**
   追踪最新 moon 工具链特性，补充官方技能尚未覆盖的内容。
@@ -29,7 +29,7 @@ last_updated: "2026-07-19"
 | 追踪的 moon 版本 | `moon 0.1.20260626 (305d2bc 2026-06-26)` |
 | 本技能最后更新 | `2026-07-19` |
 | 官方技能仓库 | [moonbitlang/skills](https://github.com/moonbitlang/skills) |
-| 本技能仓库 | [conglinyizhi/moonbit-hotfix-skills](https://github.com/conglinyizhi/moonbit-hotfix-skills) |
+| 本技能仓库 | [conglinyizhi/clyzhi-moonwell-spring](https://github.com/conglinyizhi/clyzhi-moonwell-spring) |
 
 ---
 
