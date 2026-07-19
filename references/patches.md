@@ -85,7 +85,7 @@ json_inspect(value, content={ "key": "value" })   // ✅
 
 ### 六、属性完整列表
 
-`moon explain --attribute` 输出（moon 0.1.20260626）：
+`moon explain --attribute` 输出（moon 0.1.20260713）：
 
 | 属性 | 用途 |
 |:--|:--|
