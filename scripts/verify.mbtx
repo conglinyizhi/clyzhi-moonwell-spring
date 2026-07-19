@@ -1,101 +1,112 @@
 ///|
 /// Moonwell Spring 验证脚本
-/// 检查本技能追踪内容与当前 moon 版本是否匹配。
-/// 运行：moon run scripts/verify.mbtx --target native
+/// 跨平台：moon run verify.mbtx --target native
 import {
+  "moonbitlang/async@0.20.2",
+  "moonbitlang/async@0.20.2/fs",
   "moonbitlang/async@0.20.2/process",
-  "moonbitlang/async@0.20.2/stdio",
-}
-
-///| line("") + line(str)
-fn line(self : StringBuilder, str : StringView) -> StringBuilder {
-  ignore(self.write_string(str))
-  ignore(self.write_char('\n'))
-  self
+  "moonbitlang/core/string" @string,
 }
 
 ///|
-async fn check(
-  name : String,
-  expected : String,
-  check : () -> (String, Bool),
-) -> Unit {
-  let (actual, ok) = check()
-  let buf = StringBuilder::new()
-  buf..line("")..line(if ok { "[PASS]" } else { "[FAIL]" } + " \{name}")
-  buf..line("       expected: \{expected}")
-  buf..line("       actual:   \{actual}")
-  @stdio.stdout.write_string(buf.to_string())
+struct Config {
+  tracked_version : String
+  min_attributes : Int
+  min_commands : Int
+}
+
+///|
+async fn load_config() -> Config {
+  let data = @fs.read_file("moonwell.toml")
+  let content = data.text()
+  let mut version = ""
+  let mut attrs = 0
+  let mut cmds = 0
+  for line in content.split("\n") {
+    let s = line.trim().to_owned()
+    if s == "" || s[0] == '#' {
+      continue
+    }
+    let parts = s.split("=").to_array()
+    if parts.length() < 2 {
+      continue
+    }
+    let key = parts[0].trim().to_owned()
+    let val = parts[1].trim().trim(chars="\"").to_owned()
+    if key == "tracked_version" {
+      version = val
+    } else if key == "min_attributes" {
+      attrs = @string.parse_int(val)
+    } else if key == "min_commands" {
+      cmds = @string.parse_int(val)
+    }
+  }
+  { tracked_version: version, min_attributes: attrs, min_commands: cmds }
+}
+
+///|
+fn show(name : String, expected : String, actual : String, ok : Bool) -> Unit {
+  let tag = if ok { "[PASS]" } else { "[FAIL]" }
+  println("")
+  println(tag + " " + name)
+  println("       expected: " + expected)
+  println("       actual:   " + actual)
 }
 
 ///|
 async fn main {
+  let cfg = load_config()
+  let parts = cfg.tracked_version.split(" ").to_array()
+  let version_marker = parts[1].to_owned()
+
   // 1. 版本匹配
-  check(
-    "moon version",
-    "0.1.20260626",
-    () => {
-      let (_, out) = @process.collect_stdout("moon", ["version"])
-      let text = out.read_to_end().to_string().trim()
-      (text, text.contains("0.1.20260626"))
-    },
-  )
+  let (_, out) = @process.collect_stdout("moon", ["version"])
+  let version_text = out.text().trim().to_owned()
+  show("moon version", version_marker, version_text, version_text.contains(version_marker))
 
-  // 2. 属性数量 ≥ 18
-  check(
+  // 2. 属性数量
+  let (_, out) = @process.collect_stdout("moon", ["explain", "--attribute"])
+  let attr_text = out.text()
+  let mut attr_count = 0
+  for line in attr_text.split("\n") {
+    let s = line.trim().to_owned()
+    if s != "" && s.has_prefix("#") {
+      attr_count = attr_count + 1
+    }
+  }
+  show(
     "moon explain --attribute count",
-    "≥ 18",
-    () => {
-      let (_, out) = @process.collect_stdout("moon", ["explain", "--attribute"])
-      let text = out.read_to_end().to_string()
-      let count = 0
-      for line in text.split("\n") {
-        if line.trim_start().starts_with("#") {
-          count = count + 1
-        }
-      }
-      (count.to_string(), count >= 18)
-    },
+    "≥ " + cfg.min_attributes.to_string(),
+    attr_count.to_string(),
+    attr_count >= cfg.min_attributes,
   )
 
-  // 3. 命令数量 ≥ 27
-  check(
+  // 3. 命令数量
+  let (_, out) = @process.collect_stdout("moon", ["--help"])
+  let help_text = out.text()
+  let mut cmd_count = 0
+  for line in help_text.split("\n") {
+    let s = line.to_owned()
+    if s.length() >= 2 && s[0] == ' ' && s[1] == ' ' && s[2] != ' ' {
+      cmd_count = cmd_count + 1
+    }
+  }
+  show(
     "moon --help command count",
-    "≥ 27",
-    () => {
-      let (_, out) = @process.collect_stdout("moon", ["--help"])
-      let text = out.read_to_end().to_string()
-      let count = 0
-      for line in text.split("\n") {
-        if line.trim_start().substring(end=2) is "  " && line.trim().length() > 0 && !line.starts_with("    ") {
-          count = count + 1
-        }
-      }
-      (count.to_string(), count >= 27)
-    },
+    "≥ " + cfg.min_commands.to_string(),
+    cmd_count.to_string(),
+    cmd_count >= cfg.min_commands,
   )
 
-  // 4. moon.mod 新格式生效
-  check(
-    "moon new creates moon.mod",
-    "moon.mod (not moon.mod.json)",
-    () => {
-      let (_, out) = @process.collect_stdout("moon", ["new", "--help"])
-      let text = out.read_to_end().to_string()
-      let found = text.contains("moon.mod")
-      (if found { "moon.mod found" } else { "moon.mod NOT found" }, found)
-    },
-  )
+  // 4. moon.mod 新格式
+  let (_, out) = @process.collect_stdout("moon", ["new", "--help"])
+  let new_text = out.text()
+  let mod_ok = !new_text.contains("moon.mod.json")
+  show("moon new drops moon.mod.json", "no moon.mod.json", if mod_ok { "clean" } else { "has moon.mod.json" }, mod_ok)
 
   // 5. moon.work 存在
-  check(
-    "moon work --help",
-    "contains 'init'",
-    () => {
-      let (_, out) = @process.collect_stdout("moon", ["work", "--help"])
-      let text = out.read_to_end().to_string()
-      let found = text.contains("init")
-      (if found { "init found" } else { "init NOT found" }, found)
-    },
-  )
+  let (_, out) = @process.collect_stdout("moon", ["work", "--help"])
+  let work_text = out.text()
+  let work_ok = work_text.contains("init")
+  show("moon work --help", "init present", if work_ok { "found" } else { "NOT found" }, work_ok)
 }

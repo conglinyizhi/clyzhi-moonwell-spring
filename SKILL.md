@@ -2,23 +2,21 @@
 name: clyzhi-moonwell-spring
 description: >
   MoonBit 官方技能热修复层。月井之春:补丁如泉水回春。必须与官方 moonbit-* 技能同时加载。
-tracked_version: "moon 0.1.20260626 (305d2bc 2026-06-26)"
-last_updated: "2026-07-19"
 ---
 
 # MoonBit Hotfix Skills · 月井之春
 
 > 官方 [moonbitlang/skills](https://github.com/moonbitlang/skills) 的热修复层。
-> **必须与官方 moonbit-* 系列技能同时加载。** 本技能只记录官方技能尚未覆盖或已过时的内容，
+> **必须与官方 moonbit-\* 系列技能同时加载。** 本技能只记录官方技能尚未覆盖或已过时的内容，
 > 不重复官方技能已有信息。内容冲突时以本技能为准。
 
-**追踪版本**：moon 0.1.20260626 | **最后更新**：2026-07-19 | **仓库**：[conglinyizhi/clyzhi-moonwell-spring](https://github.com/conglinyizhi/clyzhi-moonwell-spring)
+**配置**：[moonwell.toml](moonwell.toml) | **仓库**：[conglinyizhi/clyzhi-moonwell-spring](https://github.com/conglinyizhi/clyzhi-moonwell-spring)
 
 ---
 
 ## 触发条件
 
-以下关键词/场景触发本技能（与官方 moonbit-* 技能同时加载）：
+以下关键词/场景触发本技能（与官方 moonbit-\* 技能同时加载）：
 
 - 使用 MoonBit 开发、编写 `.mbt` 代码
 - 配置 `moon.mod`、`moon.pkg`、`moon.work`
@@ -72,12 +70,12 @@ moon run scripts/verify.mbtx --target native
 
 ```text
 [PASS] moon version
-       expected: 0.1.20260626
-       actual:   0.1.20260626
+expected: 0.1.20260626
+actual:   0.1.20260626
 
 [FAIL] moon --help command count
-       expected: ≥ 27
-       actual:   3
+expected: ≥ 27
+actual:   3
 ```
 
 5 项检查全部 [PASS] = 技能新鲜。

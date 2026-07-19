@@ -205,25 +205,40 @@ moon -Z <FEATURE_NAME> check   # 启用不稳定特性
 
 ---
 
-### 十七、.mbtx + @async/process 子进程调用
+### 十七、.mbtx + @async/fs + @async/process 子进程与文件 I/O
 
-官方 `moonbit-agent-guide` 的 .mbtx 和 async 章节未提及 `@async/process` 子包。`.mbtx` 脚本可以通过 `@async/process` 调用系统命令并捕获输出，实现跨平台脚本（Windows/Linux/macOS）。
+官方技能未提及 `.mbtx` 可通过 `@async` 系列包进行跨平台子进程调用和文件 I/O。两者可在同一个 `async fn main` 中共存。
 
 mbtx 依赖声明：
 ```mbt
 import {
+  "moonbitlang/async@0.20.2",
+  "moonbitlang/async@0.20.2/fs",
   "moonbitlang/async@0.20.2/process",
-  "moonbitlang/async@0.20.2/stdio",
+  "moonbitlang/core/string" @string,
 }
 ```
 
-关键 API：
+子进程（`@async/process`）：
 ```mbt
-@process.collect_stdout("moon", ["version"])     // → (exit_code, stdout_bytes)
-@process.collect_stderr("moon", ["check"])       // → (exit_code, stderr_bytes)
-@process.collect_output("moon", ["test"])        // → (exit_code, stdout, stderr)
+@process.collect_stdout("moon", ["version"])     // → (exit_code, &@io.Data)
+@process.collect_stderr("moon", ["check"])       // → (exit_code, &@io.Data)
 @process.run("moon", ["build"])                  // → exit_code
 ```
 
-来源：[moonbitlang/async/src/process](https://github.com/moonbitlang/async/tree/main/src/process)
+文件 I/O（`@async/fs`）：
+```mbt
+@fs.read_file("moonwell.toml")                   // → &@io.Data
+@fs.open("out.txt", mode=ReadOnly)               // → File (支持 read_all 等方法)
+```
+
+`&@io.Data` 统一接口：
+```mbt
+let data = @process.collect_stdout(...)  // 或 @fs.read_file(...)
+let text = data.text()                    // → String (UTF-8 解码)
+let json = data.json()                    // → Json (解析 JSON)
+let bytes = data.binary()                 // → Bytes (原始二进制)
+```
+
+来源：[moonbitlang/async/src/process](https://github.com/moonbitlang/async/tree/main/src/process)、[moonbitlang/async/src/fs](https://github.com/moonbitlang/async/tree/main/src/fs)
 

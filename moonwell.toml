@@ -1,0 +1,8 @@
+# moonwell-spring 配置
+# 本文件是 moonwell-spring 技能的唯一权威数据源。
+# SKILL.md / verify.mbtx / update-workflow.md 均从此读取。
+
+tracked_version = "moon 0.1.20260626 (305d2bc 2026-06-26)"
+last_updated = "2026-07-19"
+min_attributes = 18
+min_commands = 27
