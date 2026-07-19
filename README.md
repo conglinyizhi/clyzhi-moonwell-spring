@@ -1,6 +1,6 @@
-# clyzhi-moonwell-spring
+# 月井之春
 
-> 月井之春 — MoonBit 官方技能热修复层。补丁如泉水回春。
+MoonBit 官方技能热修复层。因为发现 MoonBit 的官方 Skill 似乎有很大的延迟，一些新的特性没有跟上文档，但重写全部 skill 的难度和把控需要的精力过大，因此创建这个 skill
 
 追踪 moon 工具链最新特性，补充 [moonbitlang/skills](https://github.com/moonbitlang/skills) 尚未覆盖的内容。由 AI Agent 自动加载，为 MoonBit 开发提供准确的上下文。
 
@@ -35,4 +35,4 @@
 
 ## 许可
 
-Apache-2.0
+MIT
