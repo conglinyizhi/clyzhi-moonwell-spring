@@ -90,12 +90,12 @@ moon --help   # 快速 diff 检查是否有新增子命令
 
 ## 更新记录
 
-### 2026-07-20：实战增补补丁二十、二十一（moon 仍 0.1.20260717）
+### 2026-07-20：实战增补补丁20、21（moon 仍 0.1.20260717）
 
 1. `moon version` 未变：0.1.20260717 (438c06f 2026-07-17)
 2. 来源：json-api 实战（`@http.Server` + 统一 JSON 信封）踩坑回流
-3. 新增补丁二十：Async/HTTP 服务默认栈；无独立后端框架；`moon new` 默认 wasm-gc vs native；`Content-Length` 与 `String.length` 语义
-4. 新增补丁二十一：数组模式至多一个 `..`；`Show`→`@debug.to_string`/`repr`；`catch` 与 `<|` 优先级
+3. 新增补丁20：Async/HTTP 服务默认栈；无独立后端框架；`moon new` 默认 wasm-gc vs native；`Content-Length` 与 `String.length` 语义
+4. 新增补丁21：数组模式至多一个 `..`；`Show`→`@debug.to_string`/`repr`；`catch` 与 `<|` 优先级
 5. 同步 `patches.min.md`、`SKILL.md` 条目计数 19→21；`last_updated` 刷新
 
 ### 2026-07-20：moon 0.1.20260713 → 0.1.20260717
@@ -106,7 +106,7 @@ moon --help   # 快速 diff 检查是否有新增子命令
 4. 新增选项：`moon run --build-only` / `moon test --build-only`
 5. 新增能力：`moon run -` 从 stdin 读取 `.mbtx`
 6. 废弃：`moon doc [SYMBOL]` → 用 `moon ide doc`
-7. 新增补丁十八、十九
+7. 新增补丁18、19
 
 ### 2026-07-19：初始创建（moon 0.1.20260626）
 
