@@ -6,3 +6,4 @@ tracked_version = "moon 0.1.20260717 (438c06f 2026-07-17)"
 last_updated = "2026-07-20"
 min_attributes = 18
 min_commands = 27
+# 补丁条目数（patches.md / patches.min.md）= 21；版本未变时仅做实战增补

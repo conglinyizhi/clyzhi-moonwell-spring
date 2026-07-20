@@ -271,3 +271,137 @@ moon ide doc <SYMBOL>   # ✅ 替代方案
 
 官方技能未提及 `--build-only` 和 stdin `.mbtx` 能力。
 
+---
+
+### 二十、Async / HTTP 服务默认栈（无独立后端框架）
+
+MoonBit **没有** Express / Gin / Axum 级独立 Web 框架。HTTP 服务端能力由官方异步库提供：
+
+| 能力 | 包 | 入口 |
+|:--|:--|:--|
+| HTTP Server / Client | `moonbitlang/async/http` | `@http.Server`、`@http.get` |
+| TCP / 地址 | `moonbitlang/async/socket` | `@socket.Addr`、`TcpServer` |
+| 异步运行时 | `moonbitlang/async` | `async fn main`、`with_task_group` |
+
+**默认陷阱（`moon new`）：**
+
+- 新建模块默认 `preferred_target = "wasm-gc"`
+- `async fn main` / `@http.Server` **需要 native**（且须依赖 `moonbitlang/async`）
+- 未改目标或未加依赖时：`Cannot use async fn main: package moonbitlang/async is not imported`
+
+**最小服务端脚手架：**
+
+```bash
+moon add moonbitlang/async@0.20.2   # 版本以 mooncakes 最新为准
+```
+
+```toml
+# moon.mod
+preferred_target = "native"
+import {
+  "moonbitlang/async@0.20.2",
+}
+```
+
+```toml
+# moon.pkg（可执行包，如 cmd/main）
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/http" @http,
+  "moonbitlang/async/socket" @socket,
+}
+supported_targets = "+native"
+options(
+  "is-main": true,
+)
+```
+
+```mbt
+///|
+async fn main {
+  let server = @http.Server(@socket.Addr::parse("0.0.0.0:8080"))
+  try server.run_forever(allow_failure=true, (request, _body, conn) => {
+    // 1. send_response → 2. 写 body（作 Writer）→ 3. end_response（可省略，返回后自动 end）
+    conn.send_response(200, "OK", extra_headers={
+      "Content-Type": "application/json; charset=utf-8",
+    })
+    conn.write_string("{\"ok\":true}")
+  }) catch {
+    err => println("server stopped: \{err}")
+  }
+}
+```
+
+**路由：** 官方 API 无内置路由器；手写 `match (request.meth, path)` 即可。URL 路由库可选用社区 `ShellWen/sw_router`（仅路由，不是完整 Web 框架）。HTTP 头解析可参考 `f4ah6o/http11`（解析层，不是服务框架）。
+
+**官方示例路径（`moon fetch moonbitlang/async` 后）：**
+
+- `examples/http_file_server/`
+- `examples/http_server_benchmark/`
+- `src/http/README.mbt.md`（Writing HTTP servers 一节）
+
+**JSON 响应注意：**
+
+- 统一信封可用 `Json` 字面量 + `body.stringify()`
+- `String.length()` 是 **UTF-16 码元** 数；`Content-Length` 需要 **字节** 数。纯 ASCII JSON 二者一致；含非 ASCII 的 `err` 时勿直接用 `text.length()` 当字节长度
+
+**官方技能缺口：** `moonbit-agent-guide` 有 async 语法，但未点明「无后端框架 + 默认 wasm-gc 与 HTTP native 冲突 + Server 脚手架」。
+
+---
+
+### 二十一、数组模式至多一个 `..` + Show 弃用改 Debug
+
+#### 数组 / 字符串模式：`..` 至多一个
+
+编译器错误：`At most one \`..\` is allowed in array pattern.`
+
+```mbt
+// ❌ 非法：多个 rest
+match path {
+  [.. p, .. "?", ..] => p
+  _ => path
+}
+
+// ✅ 合法：先 find / 切片，再处理
+let s = path.to_owned()
+let without_query = match s.find("?") {
+  Some(idx) => s[:idx].to_owned()
+  None => s
+}
+```
+
+字符串 / 字节上「去掉 query、尾斜杠」等，优先 `find` / 切片，不要堆多个 `..`。
+
+#### `Show` 弃用 → `@debug.to_string` / `repr`
+
+对部分类型（含部分 enum、`Option` 相关路径）直接 `\{value}` 插值或依赖旧 `Show` 会触发 **deprecated** 警告。
+
+```mbt
+// ⚠️ 可能 deprecated
+let detail = "method not allowed: \{meth}"
+
+// ✅ 调试 / 错误详情
+let detail = "method not allowed: \{@debug.to_string(meth)}"
+// 或 prelude 的 repr（与 @debug.to_string 同一函数）
+let detail = "method not allowed: \{repr(meth)}"
+```
+
+规则：
+
+- **用户可见展示** → 手写 `impl Show` 或领域格式
+- **日志 / 错误详情 / 快照** → `Debug` + `@debug.to_string` / `repr` / `debug_inspect`
+
+#### `catch` 与 `<|` 优先级
+
+警告 `[0051] ambiguous_precedence`：`server.run_forever() <| (...) catch { ... }` 歧义。
+
+```mbt
+// ❌ 易警告
+server.run_forever() <| ((req, body, conn) => { ... }) catch { err => ... }
+
+// ✅
+try server.run_forever(allow_failure=true, (req, body, conn) => { ... }) catch {
+  err => ...
+}
+```
+

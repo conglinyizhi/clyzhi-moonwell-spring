@@ -1,6 +1,6 @@
 # 补丁索引（精简版）
 
-> 完整补丁详情见 `patches.md`（19 条目）。本文件供 Agent 日常快速索引，避免每次加载完整 patches.md。
+> 完整补丁详情见 `patches.md`（21 条目）。本文件供 Agent 日常快速索引，避免每次加载完整 patches.md。
 
 ## 补丁索引
 
@@ -25,6 +25,8 @@
 | 十七 | .mbtx + @async/process 子进程调用 | 补充 |
 | 十八 | moon check --fmt / --explain / --patch-file | 补充 |
 | 十九 | moon run/test --build-only + stdin .mbtx + doc 废弃 | 补充 |
+| 二十 | Async / HTTP 服务默认栈（无独立后端框架） | 补充 |
+| 二十一 | 数组模式至多一个 `..` + Show→Debug + catch/`<|` 优先级 | 写法规范 |
 
 ---
 
@@ -32,9 +34,9 @@
 
 | 官方技能 | 主要问题 | 对应补丁 |
 |:--|:--|:--|
-| `moonbit-agent-guide` | 缺 moon.work / runwasm / .mbtx / Component Model / @async/process | 二、三、十二、十三、十七 |
+| `moonbit-agent-guide` | 缺 moon.work / runwasm / .mbtx / Component Model / @async/process；缺 HTTP 服务脚手架与默认 target 陷阱 | 二、三、十二、十三、十七、二十、二十一 |
 | `moonbit-c-binding` | Phase 1 用 `moon.mod.json`（已弃用）；`supported_targets` 数组写法 | 一 |
-| `moonbit-orientation` | references 无 moon.work / runwasm | 二、三 |
+| `moonbit-orientation` | references 无 moon.work / runwasm；后端/HTTP 路由未点明 | 二、三、二十 |
 | `moonbit-spec-test-development` | `#declaration_only` → `declare`；`@json.inspect()` → `json_inspect()`；引用旧格式 | 四、五、一 |
 
 ---
