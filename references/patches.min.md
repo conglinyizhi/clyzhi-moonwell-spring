@@ -1,6 +1,6 @@
 # 补丁索引（精简版）
 
-> 完整补丁详情见 `patches.md`。本文件供 Agent 日常快速索引，避免每次加载完整 patches.md。
+> 完整补丁详情见 `patches.md`（19 条目）。本文件供 Agent 日常快速索引，避免每次加载完整 patches.md。
 
 ## 补丁索引
 
@@ -23,6 +23,8 @@
 | 十五 | moon check --output-json | 补充 |
 | 十六 | --unstable-feature / -Z | 补充 |
 | 十七 | .mbtx + @async/process 子进程调用 | 补充 |
+| 十八 | moon check --fmt / --explain / --patch-file | 补充 |
+| 十九 | moon run/test --build-only + stdin .mbtx + doc 废弃 | 补充 |
 
 ---
 

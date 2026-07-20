@@ -90,6 +90,16 @@ moon --help   # 快速 diff 检查是否有新增子命令
 
 ## 更新记录
 
+### 2026-07-20：moon 0.1.20260713 → 0.1.20260717
+
+1. `moon version` → 0.1.20260717 (438c06f 2026-07-17)
+2. 命令列表无变化（30 个），属性无变化（18 个）
+3. 新增选项：`moon check --fmt` / `--explain` / `--patch-file`
+4. 新增选项：`moon run --build-only` / `moon test --build-only`
+5. 新增能力：`moon run -` 从 stdin 读取 `.mbtx`
+6. 废弃：`moon doc [SYMBOL]` → 用 `moon ide doc`
+7. 新增补丁十八、十九
+
 ### 2026-07-19：初始创建（moon 0.1.20260626）
 
 1. `moon version` → 确认版本 0.1.20260626

@@ -85,7 +85,7 @@ json_inspect(value, content={ "key": "value" })   // ✅
 
 ### 六、属性完整列表
 
-`moon explain --attribute` 输出（moon 0.1.20260713）：
+`moon explain --attribute` 输出（moon 0.1.20260717）：
 
 | 属性 | 用途 |
 |:--|:--|
@@ -241,4 +241,33 @@ let bytes = data.binary()                 // → Bytes (原始二进制)
 ```
 
 来源：[moonbitlang/async/src/process](https://github.com/moonbitlang/async/tree/main/src/process)、[moonbitlang/async/src/fs](https://github.com/moonbitlang/async/tree/main/src/fs)
+
+---
+
+### 十八、moon check --fmt / --explain / --patch-file（moon ≥ 0.1.20260717）
+
+```bash
+moon check --fmt        # 只检查格式，不修改代码（CI 友好）
+moon check --explain     # 检查时展开解释错误码详情
+moon check --patch-file <FILE>  # 对单个包的补丁文件检查
+```
+
+`--fmt` 与 `moon fmt --check` 等价，但在 `moon check` 流程中统一执行。官方技能未提及这些选项。
+
+---
+
+### 十九、moon run/test --build-only + stdin 脚本 + moon doc 废弃（moon ≥ 0.1.20260717）
+
+```bash
+moon run --build-only <PKG>   # 只构建不运行
+moon test --build-only        # 只构建不运行测试
+echo 'fn main { println("hi") }' | moon run -   # stdin 读取 .mbtx
+```
+
+`moon doc [SYMBOL]` 已废弃：
+```bash
+moon ide doc <SYMBOL>   # ✅ 替代方案
+```
+
+官方技能未提及 `--build-only` 和 stdin `.mbtx` 能力。
 
