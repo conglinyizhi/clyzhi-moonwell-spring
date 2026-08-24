@@ -1,6 +1,6 @@
 # 补丁索引（精简版）
 
-> 完整补丁详情见 `patches.md`（21 条目）。本文件供 Agent 日常快速索引，避免每次加载完整 patches.md。
+> 完整补丁详情见 `patches.md`（23 条目）。本文件供 Agent 日常快速索引，避免每次加载完整 patches.md。
 
 ## 补丁索引
 
@@ -27,6 +27,8 @@
 | 19 | moon run/test --build-only + stdin .mbtx + doc 废弃 | 补充 |
 | 20 | Async / HTTP 服务默认栈（无独立后端框架） | 补充 |
 | 21 | 数组模式至多一个 `..` + Show→Debug + catch/`<|` 优先级 | 写法规范 |
+| 22 | Rabbita 全栈 SSR（SSR + moonback 后端；未入官方 skills） | 新特性 |
+| 23 | MoonBit 语言/工具层实战坑（async trait impl 静默丢弃 / core 无文件 IO / MOON_CC / `--noproxy` / JWT base64） | 已知限制 |
 
 ---
 

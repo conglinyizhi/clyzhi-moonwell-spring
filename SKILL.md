@@ -23,7 +23,8 @@ description: >
 - 执行 `moon check`、`moon build`、`moon test`、`moon run`、`moon fmt`、`moon new`
 - 使用 `moon work`、`moon prove`、`moon runwasm`、`moon fetch`
 - 涉及 C FFI 绑定、形式化验证、WASM 编译目标、`.mbtx` 脚本
-- 编写 HTTP / JSON API / `async fn main` 服务端（无独立后端框架，见补丁20）
+- 编写 HTTP / JSON API / `async fn main` 服务端（官方 async 库无后端框架，见补丁20）
+- 使用 Rabbita / moonback / warren 开发全栈 SSR（见补丁22 + `references/rabbita-fullstack.md`）
 - 用户要求「更新 moonwell-spring」或 moon 版本升级后
 
 ---
@@ -38,8 +39,9 @@ Agent 加载本技能后会以本技能的知识优先参考。日常加载用�
 
 ### 补丁内容
 
-→ 精简索引：**`references/patches.min.md`**（21 条目索引 + 官方信息来源 + 官方技能对照）
-→ 完整详情：**`references/patches.md`**（21 条目详细说明）
+→ 精简索引：**`references/patches.min.md`**（23 条目索引 + 官方信息来源 + 官方技能对照）
+→ 完整详情：**`references/patches.md`**（23 条目详细说明）
+→ Rabbita 全栈 SSR：**`references/rabbita-fullstack.md`**
 
 ### 模式 B：版本更新（用户触发）
 
@@ -56,6 +58,7 @@ Agent 加载本技能后会以本技能的知识优先参考。日常加载用�
 - HTTP 服务：无 Express 级框架；`moon new` 默认 `wasm-gc`，服务端须改 `preferred_target = "native"` + `moonbitlang/async`（补丁20）
 - 数组模式至多一个 `..`；部分类型弃用 `Show` 插值，改用 `@debug.to_string` / `repr`（补丁21）
 - ⚠️ `moon ide doc "@async/fs"` 在非模块上下文可能仅返回 `unimplemented`，不代表包空。详见 `references/moon-ide-doc-gotcha.md`。
+- Rabbita / moonback 全栈 SSR 为官方技能未覆盖生态，见 `references/rabbita-fullstack.md`（补丁22）；`moonbit-community/rabbita` 大量 API 带 `#internal(experimental)`，用前在入口 `#warnings("-alert_experimental")` 压制
 
 ---
 

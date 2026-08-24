@@ -273,9 +273,11 @@ moon ide doc <SYMBOL>   # ✅ 替代方案
 
 ---
 
-### 20、Async / HTTP 服务默认栈（无独立后端框架）
+### 20、Async / HTTP 服务默认栈（官方无独立后端框架）
 
-MoonBit **没有** Express / Gin / Axum 级独立 Web 框架。HTTP 服务端能力由官方异步库提供：
+MoonBit **官方** async 库没有 Express / Gin / Axum 级独立 Web 框架。HTTP 服务端能力由官方异步库提供：
+
+> ⚠️ **已修正（实战回流）**：官方 async 库确实无框架，但第三方 `hackwaly/moonback` 提供 Express 级路由/中间件/依赖注入框架，`moonbit-community/rabbita` 提供 SSR/前端。**全栈场景见 `references/rabbita-fullstack.md`（补丁22）**。本条的「无框架」结论不再代表 MoonBit 整体，仅限官方 async 库。
 
 | 能力 | 包 | 入口 |
 |:--|:--|:--|
@@ -403,5 +405,64 @@ server.run_forever() <| ((req, body, conn) => { ... }) catch { err => ... }
 try server.run_forever(allow_failure=true, (req, body, conn) => { ... }) catch {
   err => ...
 }
+
+---
+
+### 22、Rabbita 全栈 SSR（官方技能未覆盖）
+
+`moonbit-community/rabbita`（原名 Rabbit-TEA）是 MoonBit 的 Elm/Bonsai 风格声明式 Web UI 框架，`hackwaly/moonback` 是其配套的 Express 级后端框架。二者组成 MoonBit 全栈 SSR 的完整生态，**官方 moonbit-* 技能完全未提及**。
+
+- 全栈模式：共享组件包 `app/`（纯 UI）+ 后端 `cmd/server`（moonback Module + Rabbita SSR）+ 前端 `cmd/browser` + 根库包（`+native`）
+- **核心约束**：根库包 `+native`，前端 JS 水合不能直接 import → `app/` 只能纯 UI，数据走 REST API
+- **关键决策**：SSR + 水合复杂度高到不值，实战回退 MPA（SSR 完整 HTML + 内联 JS）
+
+完整 API 速查、依赖声明、失败经验与坑 → **`references/rabbita-fullstack.md`**。
+
+---
+
+### 23、MoonBit 语言/工具层实战坑（native 全栈开发）
+
+#### async trait impl 未稳定（静默丢弃）
+
+`impl` 里**同步 fn 方法体不能调 async fn**。一旦调用，整个 `impl` 会被**静默丢弃**——编译通过、符号存在，但方法体不执行。方法上标 `async` 会标注「useless」。MoonBit 的 async trait impl 语法仍未稳定（官方文档标题 experimental）。
+
+```mbt
+// ❌ 陷阱：同步 trait 方法体调 async fn → impl 被丢弃，且无编译错误
+// trait Storage { fn read(self, k: String) -> Option[String] }
+impl Storage for LocalStorage with fn read(self, k) {
+  // @fs.* 是 async → 此 impl 整体失效
+  Some(@fs.read_file(k).text())
+}
+
+// ✅ 务实方案：trait 走同步 + core 同步文件 API；或独立 async 函数
 ```
+
+> 症状是「方法不生效 / 符号 undefined」，而非编译失败。排查优先做最小实验定位（见下）。
+
+#### core 没有文件 IO 包
+
+`moonbitlang/core` **不含文件 I/O**。读文件用 `moonbitlang/async/fs`（`@fs.read_file`、`@fs.exists`）。区分 `@fs`（async 包）与 `@io`（统一数据接口：`text()/json()/binary()`）。
+
+#### MOON_CC 坑（native backend）
+
+native backend 需要 C 编译器/链接器驱动。工具链可能在找 `/usr/bin/lib.exe`（Windows archiver），此时 `moon run/build` 报错。解决：
+
+```bash
+MOON_CC=gcc moon run --target native .
+```
+
+项目级固化：在 `moon.mod`/`moon.pkg` 配 `link.native.cc`，或在 Makefile/构建脚本统一导出 `MOON_CC`。moon 会提示「`MOON_CC overrides link.native.cc configured by package`」。
+
+#### 代理坑
+
+本地有代理时，`moon` / `curl` 对本地地址可能走代理导致超时/403。用 `--noproxy '*'` 绕开：
+
+```bash
+moon build --noproxy '*'
+curl -x http://127.0.0.1:10738 --noproxy '*' -L <url>
+```
+
+#### JWT/base64 解码在 nightly 不稳定
+
+nightly 的 base64 解码路径不稳定，跨进程 JWT 验签可能失败。务实做法：同一进程内用 **token registry**（会话权威）兜底，JWT 仍按规范签发；退出时撤销登记（契合「仅服务生命周期有效」）。此属已知限制，非 API 契约。
 

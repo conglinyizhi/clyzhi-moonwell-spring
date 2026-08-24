@@ -90,6 +90,15 @@ moon --help   # 快速 diff 检查是否有新增子命令
 
 ## 更新记录
 
+### 2026-08-24：实战增补补丁22、23（moon 仍 0.1.20260717）
+
+1. `moon version` 未变：0.1.20260717
+2. 来源：rootwarren（mbt-mdwiki）全栈 SSR 重写实战回流
+3. 新增补丁22：Rabbita 全栈 SSR（含 moonback 后端框架）；新建 `references/rabbita-fullstack.md`
+4. 新增补丁23：MoonBit 语言/工具层实战坑（async trait impl 静默丢弃、core 无文件 IO、MOON_CC、`--noproxy` 代理、JWT base64）
+5. 修正补丁20：官方 async 库无后端框架 → 第三方 moonback 提供（指向补丁22）
+6. 同步 `patches.min.md`、`SKILL.md` 条目计数 21→23；`README.md` 补丁覆盖 & 追踪版本；`moonwell.toml` last_updated 刷新
+
 ### 2026-07-20：实战增补补丁20、21（moon 仍 0.1.20260717）
 
 1. `moon version` 未变：0.1.20260717 (438c06f 2026-07-17)
