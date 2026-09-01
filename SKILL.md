@@ -25,6 +25,7 @@ description: >
 - 涉及 C FFI 绑定、形式化验证、WASM 编译目标、`.mbtx` 脚本
 - 编写 HTTP / JSON API / `async fn main` 服务端（官方 async 库无后端框架，见补丁20）
 - 使用 Rabbita / moonback / warren 开发全栈 SSR（见补丁22 + `references/rabbita-fullstack.md`）
+- 接入大模型（OpenAI / Anthropic / MCP）或 Linux 桌面集成（D-Bus / 托盘）——先查补丁24 生态包速查，别手写协议
 - 用户要求「更新 moonwell-spring」或 moon 版本升级后
 
 ---
@@ -39,8 +40,8 @@ Agent 加载本技能后会以本技能的知识优先参考。日常加载用�
 
 ### 补丁内容
 
-→ 精简索引：**`references/patches.min.md`**（23 条目索引 + 官方信息来源 + 官方技能对照）
-→ 完整详情：**`references/patches.md`**（23 条目详细说明）
+→ 精简索引：**`references/patches.min.md`**（24 条目索引 + 生态包速查 + 官方信息来源 + 官方技能对照）
+→ 完整详情：**`references/patches.md`**（24 条目详细说明）
 → Rabbita 全栈 SSR：**`references/rabbita-fullstack.md`**
 
 ### 模式 B：版本更新（用户触发）
@@ -59,6 +60,7 @@ Agent 加载本技能后会以本技能的知识优先参考。日常加载用�
 - 数组模式至多一个 `..`；部分类型弃用 `Show` 插值，改用 `@debug.to_string` / `repr`（补丁21）
 - ⚠️ `moon ide doc "@async/fs"` 在非模块上下文可能仅返回 `unimplemented`，不代表包空。详见 `references/moon-ide-doc-gotcha.md`。
 - Rabbita / moonback 全栈 SSR 为官方技能未覆盖生态，见 `references/rabbita-fullstack.md`（补丁22）；`moonbit-community/rabbita` 大量 API 带 `#internal(experimental)`，用前在入口 `#warnings("-alert_experimental")` 压制
+- **接大模型不要手写 OpenAI/Anthropic 规范**：`tonyfettes/openai`（轻量）、`QuietlyChan/moonai`（双协议统一层）已覆盖；接 Linux 托盘/D-Bus 用 `conglinyizhi/moondbus` + `moonsni`。详见补丁24
 
 ---
 
@@ -74,12 +76,12 @@ moon run scripts/verify.mbtx --target native
 
 ```text
 [PASS] moon version
-expected: 0.1.20260626
-actual:   0.1.20260626
+expected: 0.1.20260826
+actual:   0.1.20260826
 
 [FAIL] moon --help command count
 expected: ≥ 27
 actual:   3
 ```
 
-5 项检查全部 [PASS] ≈ 技能新鲜，至少保证本地可以使用这套技能
+5 项检查全部 [PASS] ≈ 技能新鲜，至少保证本地可以使用这套技能。若 native 构建报 C 编译器/链接器错误，先设置 `MOON_CC=cc` 或其他可用编译器。

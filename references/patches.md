@@ -85,7 +85,7 @@ json_inspect(value, content={ "key": "value" })   // ✅
 
 ### 6、属性完整列表
 
-`moon explain --attribute` 输出（moon 0.1.20260717）：
+`moon explain --attribute` 输出（moon 0.1.20260826）：
 
 | 属性 | 用途 |
 |:--|:--|
@@ -104,7 +104,11 @@ json_inspect(value, content={ "key": "value" })   // ✅
 | `#label_migration` | 标签迁移辅助 |
 | `#module` | 模块级标注 |
 | `#must_implement_one` | trait 方法互斥实现约束 |
+| `#proof_external` | 外部证明声明 |
+| `#proof_import` | 证明导入 |
+| `#proof_pure` | 纯证明函数 |
 | `#skip` | 跳过检查 |
+| `#unsafe_cycle_free` | 非安全循环自由约束 |
 | `#visibility` | 可见性控制 |
 | `#warnings` | 警告控制 |
 
@@ -466,3 +470,71 @@ curl -x http://127.0.0.1:10738 --noproxy '*' -L <url>
 
 nightly 的 base64 解码路径不稳定，跨进程 JWT 验签可能失败。务实做法：同一进程内用 **token registry**（会话权威）兜底，JWT 仍按规范签发；退出时撤销登记（契合「仅服务生命周期有效」）。此属已知限制，非 API 契约。
 
+---
+
+### 24、生态包速查：LLM 底座 / D-Bus 桌面集成（官方技能未覆盖）
+
+官方 moonbit-\* 技能只讲语言与工具链，**不提第三方生态包**。以下条目均为**实际 `moon add` 拉取并查阅 `.mbti` 验证过**的包，避免开发者重复造轮子。
+
+#### LLM / AI 底座（不必自己实现 OpenAI / Anthropic 规范）
+
+| 包 | 版本 | 体量 | 定位 |
+|:--|:--|:--|:--|
+| `QuietlyChan/moonai` | 0.1.0 | 481 文件 / 12.1 万行 / 19 子包 | **最全面**，对标 Vercel AI SDK |
+| `tonyfettes/openai` | 0.1.1 | 5 文件 / 2734 行 | 轻量，**只做 OpenAI**（社区组织 `moonbit-community` 维护）|
+| `eanzhao/pi-moonbit` | 0.1.5 | — | pi-mono 的 MoonBit 重写，带 `pimbt` CLI |
+| `colmugx/mcp` | 0.17.3 | — | 类型安全 MCP SDK（server/client，STDIO/HTTP）|
+
+**`QuietlyChan/moonai`** —— 唯一同时把 OpenAI 与 Anthropic 做成一等公民的统一层：
+
+- 统一 API：`generate_text` / `stream_text` / `generate_object` / `embed` / `embed_many` / `complete` / `transcribe`
+- Provider 抽象：`LanguageModelV4` / `EmbeddingModelV4` / `ImageModelV4` / `TranscriptionModelV4` / `SpeechModelV4` / `RerankingModelV4` / `VideoModelV4`
+- Provider 子包：`openai`、`anthropic`、`openai_compatible`、`deepseek`、`alibaba`、`bytedance`、`minimax`、`moonshotai`、`open_responses`
+- 附带：`mcp`（MCP 客户端）、`harness_pi` / `harness_opencode` / `harness_deepagents`（**含 pi 的 harness 适配**）
+- 机制：provider registry、middleware、`RetryPolicy`、`CancellationToken`、`HttpTransport` 可插拔
+- Anthropic 入口：`anthropic(model, api_key?, base_url?, beta_features?, http_transport?, ...) -> &LanguageModelV4`
+- 依赖 `moonbitlang/async@0.20.2` + `cc06b/mooncry@0.13.1`
+- ⚠️ 0.1.0 早期 alpha，1.0 前 API 可能变动
+
+**`tonyfettes/openai`** —— 只调 OpenAI 时的轻量选择：
+
+- `Client::new(http_client~, base_url?, api_key?)` —— base_url 可指 OpenRouter / Azure / Ollama / vLLM
+- `async ChatCompletionsService::create(...)` —— **30+ 具名参数**（tools / reasoning_effort / response_format / web_search_options / logit_bias / prediction / modalities…）
+- `async ChatCompletionsService::stream(...) -> Reader[ChatCompletionChunk]`
+- 多模态 content part：`text_content_part` / `image_content_part` / `audio_content_part` / `file_content_part`
+- 消息构造：`system_message` / `user_message` / `assistant_message` / `tool_message`
+- **`pub(open) trait HttpClient`** —— HTTP 层可插拔（自带 test/http、test/async 两个适配包）
+- 依赖 `moonbitlang/x@0.4.32`
+
+选型：只要 OpenAI → `tonyfettes/openai`；要 OpenAI + Anthropic + 多模态 + MCP → `QuietlyChan/moonai`；做 AI coding agent → `eanzhao/pi-moonbit`。
+
+#### D-Bus / Linux 桌面集成（纯 MoonBit，无 GLib/GIO/libdbus）
+
+| 包 | 版本 | 定位 |
+|:--|:--|:--|
+| `conglinyizhi/moondbus` | 0.1.0 | 纯 MoonBit D-Bus 协议实现 |
+| `conglinyizhi/moonsni` | 0.1.0 | KDE/freedesktop 系统托盘（StatusNotifierItem）|
+
+**背景**：mooncakes 上此前**没有纯 MoonBit 的 D-Bus 协议实现**。`justjavac/tray` 是绕开 D-Bus、动态加载 C 的 AppIndicator（GTK3 依赖，且 Linux 下托盘点击事件不可用）。这两个包填的是协议层空缺。
+
+**`conglinyizhi/moondbus`** —— D-Bus 协议层，仅 ~64 行 C 处理 unix socket：
+
+- 连接：`connect_bus()`（SASL `EXTERNAL` + `BEGIN` 握手）、`recv_message`（按消息边界读取）
+- 客户端：`hello` / `call` / `call_simple` / `call_with_string` / `request_name` / `emit_signal`
+- **服务端 `Server` 抽象**：`Server::connect/hello/request_name/serve/emit_signal`，`serve(dispatch)` 是可复用的常驻事件循环，`DispatchCtx`（iface/member/sender/body）+ `Reply::make(body, signature)`
+- 编码器 `Encoder`：偏移感知（`new_at(base)`），`array_with(elem_align, f)` / `struct_with(f)` / `struct_with_align(align, f)` / `variant_with(sig, f)` / `signature` / `variant_object_path`
+
+**`conglinyizhi/moonsni`** —— 托盘，渐进式三子包（可独立取用）：
+
+- `src/menu`：纯菜单数据模型（`Menu` / `ItemHandle` / `SubMenu` / i18n），**零 D-Bus 依赖**
+- `src/dbusmenu`：纯 `com.canonical.dbusmenu` 编解码（`encode_layout` / `parse_event`）
+- `src/tray`：完整托盘（`tray(cfg)` / `on` / `checkbox` / `submenu` / `separator` / `apply_translations` / `on_click` / `on_middle_click` / `on_scroll` / `run`）
+
+#### D-Bus 手写协议的四个硬坑（踩过并修复）
+
+1. **`String` 是 UTF-16**，`+` 拼接或 `@utf8.encode` 会引入 `\x00` → D-Bus 消息必须用 `Encoder` 字节级构建
+2. **`signature`（`g` 类型）是单字节长度** + 内容 + NUL，与 `s`（u32 长度）不同
+3. **回复必须设 `destination = 请求方 sender`**，否则总线无法路由回去
+4. **dbusmenu 两个致命细节**：① `toggle-type` / `toggle-state` 必须出现在**每个**菜单项上（普通项给空串和 `0`），缺失会让 KDE 把子菜单渲染成整个父菜单；② `GetLayout` 必须尊重 `parentID` 参数（0=整树，非 0=该子菜单子树），否则点子菜单会重复弹出父菜单
+
+**未解坑（供后来者参考）**：SNI 的 `IconPixmap`（`a(iiibay)`）在 variant 嵌套下的对齐编码，KDE 会断开连接。`encode_pixmap` 单独输出的字节结构已逐字节验证正确（`len | w | h | stride | ay_len | ARGB`），问题出在 `variant_with` 嵌套。moonsni 中该 API 标注为实验性。

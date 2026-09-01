@@ -1,6 +1,6 @@
 # 补丁索引（精简版）
 
-> 完整补丁详情见 `patches.md`（23 条目）。本文件供 Agent 日常快速索引，避免每次加载完整 patches.md。
+> 完整补丁详情见 `patches.md`（24 条目）。本文件供 Agent 日常快速索引，避免每次加载完整 patches.md。
 
 ## 补丁索引
 
@@ -29,6 +29,7 @@
 | 21 | 数组模式至多一个 `..` + Show→Debug + catch/`<|` 优先级 | 写法规范 |
 | 22 | Rabbita 全栈 SSR（SSR + moonback 后端；未入官方 skills） | 新特性 |
 | 23 | MoonBit 语言/工具层实战坑（async trait impl 静默丢弃 / core 无文件 IO / MOON_CC / `--noproxy` / JWT base64） | 已知限制 |
+| 24 | 生态包速查：LLM 底座（moonai / openai / pi-moonbit / mcp）+ D-Bus 桌面集成（moondbus / moonsni） | 生态包 |
 
 ---
 
@@ -40,6 +41,23 @@
 | `moonbit-c-binding` | Phase 1 用 `moon.mod.json`（已弃用）；`supported_targets` 数组写法 | 1 |
 | `moonbit-orientation` | references 无 moon.work / runwasm；后端/HTTP 路由未点明 | 2、3、20 |
 | `moonbit-spec-test-development` | `#declaration_only` → `declare`；`@json.inspect()` → `json_inspect()`；引用旧格式 | 4、5、1 |
+| （全部官方技能） | 只讲语言与工具链，**不提第三方生态包**（LLM 底座 / 桌面集成 / 全栈） | 22、24 |
+
+---
+
+## 生态包速查（补丁24 详情）
+
+> 均已 `moon add` 实际拉取 + 查阅 `.mbti` 验证。避免重复造轮子。
+
+| 需求 | 包 | 一句话 |
+|:--|:--|:--|
+| 只调 OpenAI | `tonyfettes/openai` | 轻量（2734 行），30+ 参数全覆盖，`trait HttpClient` 可插拔 |
+| OpenAI + Anthropic + 多 provider | `QuietlyChan/moonai` | 对标 Vercel AI SDK（12 万行）19 子包，含 MCP 与 pi harness（alpha）|
+| AI coding agent / CLI | `eanzhao/pi-moonbit` | pi-mono 的 MoonBit 重写，带 `pimbt` CLI，7 个 provider |
+| MCP server/client | `colmugx/mcp` | 类型安全 MCP SDK，STDIO/HTTP 双传输 |
+| D-Bus 协议（纯 MoonBit） | `conglinyizhi/moondbus` | 无 GLib/GIO/libdbus，含可复用的服务端 `Server::serve` 循环 |
+| Linux 托盘（KDE/SNI） | `conglinyizhi/moonsni` | 渐进式三子包；menu 子包**零 D-Bus 依赖**可单独用 |
+| 全栈 SSR | `moonbit-community/rabbita` + `hackwaly/moonback` | 见补丁22 与 `rabbita-fullstack.md` |
 
 ---
 
