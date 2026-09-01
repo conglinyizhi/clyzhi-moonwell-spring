@@ -88,9 +88,31 @@ moon --help   # 快速 diff 检查是否有新增子命令
 
 ---
 
-## 更新记录
+### 2026-09-01：同步 moon 0.1.20260828 + 逐条回归验证
 
-### 2026-08-24：实战增补补丁22、23（moon 仍 0.1.20260717）
+1. 本机 `moon version`：0.1.20260828 (9f6a631 2026-08-28)，较 tracked_version 漂移 2 天
+2. 基线脚本：5 项中 4 项 PASS，仅版本号 FAIL（属预期）
+3. **逐条回归验证（实测，非查文档）**：
+   - 命令存在性：runwasm / prove / fetch / coverage / package / explain / work / publish / register / search —— 全部 ✓
+   - 补丁1（moon.mod 新格式）✓；补丁2（moon work init/use/sync）✓；补丁4（declare）✓；补丁5（json_inspect 无前缀）✓
+   - 补丁11（--profile）✓；补丁16（`-Z, --unstable-feature` 为全局参数）✓；补丁18（--fmt/--explain/--patch-file/--output-json）✓
+   - 补丁19（--build-only ✓；`moon doc [SYMBOL]` 仍标 `[Deprecated] Use \`moon ide doc\`）✓
+   - 补丁21a（数组模式两个 `..` 报 [3008]）✓；补丁23（core 无 fs/io；MOON_CC 坑精确复现）✓
+4. **发现失准并修正**：补丁20 原说「`moon new` 默认 `wasm-gc`」，实测为 `preferred_target = "wasm"`——
+   已修正 patches.md（两处）与 SKILL.md（一处）
+5. **新增发现**：`moon new` 生成的是**根包扁平结构**（库代码在根 + `cmd/main`），非官方文档画的 `src/` 布局；
+   附带 AGENTS.md / LICENSE / .githooks/pre-commit / .github workflow——已写入补丁1
+6. 同步 `moonwell.toml`（tracked_version、last_updated）与 `README.md` 追踪版本
+
+### 2026-08-28：同步 moon 0.1.20260826
+
+1. 本机 `moon version`：0.1.20260826 (4bca472 2026-08-26)
+2. `moon explain --attribute`：23 个属性
+3. `moon --help`：38 个顶层命令
+4. 验证脚本的追踪版本、数量阈值和 README 已更新
+5. native 验证需显式设置可用的 `MOON_CC`；本机默认配置曾解析到不存在的 `/usr/bin/lib.exe`
+
+
 
 1. `moon version` 未变：0.1.20260717
 2. 来源：rootwarren（mbt-mdwiki）全栈 SSR 重写实战回流

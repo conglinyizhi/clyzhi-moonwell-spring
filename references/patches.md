@@ -28,6 +28,25 @@ options("is-main": true,)
 
 关于 `supported_targets`：✅ `supported_targets = "native"`（字符串，推荐），⚠️ 数组写法可能阻止下游包在其他 target 构建。
 
+#### `moon new` 的实际目录结构（moon 0.1.20260828 实测）
+
+官方 `moonbit-agent-guide` 画的是 `src/` 布局，**但 `moon new` 实际生成根包扁平结构**：
+
+```
+myproj/
+├── moon.mod
+├── moon.pkg          # 根包（内容为空）
+├── myproj.mbt        # 库代码直接在根，不是 src/
+├── myproj_test.mbt   # 黑盒测试
+├── myproj_wbtest.mbt # 白盒测试
+├── cmd/main/         # 可执行包（pkgtype(kind: "executable")）
+├── AGENTS.md、LICENSE、README.mbt.md
+├── .githooks/pre-commit（内容：`moon check`）
+└── .github/workflows/copilot-setup-steps.yml
+```
+
+要用 `src/` 布局需在 `moon.mod` 显式声明 `options("source": "src",)`。
+
 ---
 
 ### 2、moon.work 工作空间
@@ -291,7 +310,7 @@ MoonBit **官方** async 库没有 Express / Gin / Axum 级独立 Web 框架。H
 
 **默认陷阱（`moon new`）：**
 
-- 新建模块默认 `preferred_target = "wasm-gc"`
+- 新建模块默认 `preferred_target = "wasm"`（moon 0.1.20260828 实测；早期版本为 `wasm-gc`）
 - `async fn main` / `@http.Server` **需要 native**（且须依赖 `moonbitlang/async`）
 - 未改目标或未加依赖时：`Cannot use async fn main: package moonbitlang/async is not imported`
 
@@ -351,7 +370,7 @@ async fn main {
 - 统一信封可用 `Json` 字面量 + `body.stringify()`
 - `String.length()` 是 **UTF-16 码元** 数；`Content-Length` 需要 **字节** 数。纯 ASCII JSON 二者一致；含非 ASCII 的 `err` 时勿直接用 `text.length()` 当字节长度
 
-**官方技能缺口：** `moonbit-agent-guide` 有 async 语法，但未点明「无后端框架 + 默认 wasm-gc 与 HTTP native 冲突 + Server 脚手架」。
+**官方技能缺口：** `moonbit-agent-guide` 有 async 语法，但未点明「无后端框架 + 默认 wasm 与 HTTP native 冲突 + Server 脚手架」。
 
 ---
 

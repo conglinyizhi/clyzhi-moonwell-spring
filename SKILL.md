@@ -56,7 +56,7 @@ Agent 加载本技能后会以本技能的知识优先参考。日常加载用�
 - moon.work 仍在迭代中（3 个 open issue），单模块仓库暂不需要
 - `moon.mod.json` → `moon.mod` 迁移不可逆，`moon fmt` 后本地路径依赖会丢失——提前用 `moon.work` 替代
 - `.mbtx` 脚本可通过 `@async/process` + `@async/fs` 进行跨平台子进程调用和文件 I/O，官方技能未提此能力（详见 `references/patches.md` 补丁17）
-- HTTP 服务：无 Express 级框架；`moon new` 默认 `wasm-gc`，服务端须改 `preferred_target = "native"` + `moonbitlang/async`（补丁20）
+- HTTP 服务：无 Express 级框架；`moon new` 默认 `preferred_target = "wasm"`，服务端须改 `native` + `moonbitlang/async`（补丁20）
 - 数组模式至多一个 `..`；部分类型弃用 `Show` 插值，改用 `@debug.to_string` / `repr`（补丁21）
 - ⚠️ `moon ide doc "@async/fs"` 在非模块上下文可能仅返回 `unimplemented`，不代表包空。详见 `references/moon-ide-doc-gotcha.md`。
 - Rabbita / moonback 全栈 SSR 为官方技能未覆盖生态，见 `references/rabbita-fullstack.md`（补丁22）；`moonbit-community/rabbita` 大量 API 带 `#internal(experimental)`，用前在入口 `#warnings("-alert_experimental")` 压制

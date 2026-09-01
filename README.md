@@ -4,7 +4,7 @@ MoonBit 官方技能热修复层。因为发现 MoonBit 的官方 Skill 似乎�
 
 追踪 moon 工具链最新特性，补充 [moonbitlang/skills](https://github.com/moonbitlang/skills) 尚未覆盖的内容。由 AI Agent 自动加载，为 MoonBit 开发提供准确的上下文。
 
-**追踪版本**：moon 0.1.20260717（`moon run scripts/verify.mbtx --target native` 可核验）
+**追踪版本**：moon 0.1.20260828（`moon run scripts/verify.mbtx --target native` 可核验；native 验证需设置可用的 `MOON_CC`）
 
 ---
 
