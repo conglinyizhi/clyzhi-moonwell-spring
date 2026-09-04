@@ -171,6 +171,23 @@ async fn main {
 - `@static.new(root="public")` 静态中间件（`hackwaly/moonback/middlewares/unstable_static`）
 - 依赖注入 `TypedKey`；typed query / cookie 帮助；`ctx.on_close` 优雅退出钩子
 
+## SSG / 静态渲染（MPA 落地）额外坑
+
+用 Rabbita 做**静态站点生成（SSG / MPA）**（各页 SSR 完整 HTML，GitHub Pages 免后端）时：
+
+- **`@rabbita.new(fn(){ page() }).render(url, timeout)` 产完整 HTML 字符串**（含 `<!DOCTYPE>`）。
+  SSG 直接写盘成 `.html`，无需 moonback。组件的 input 用闭包捕获 `fn(){ page(input = input) }`（同坑1）。
+- **`@fs.read_file` 返回 `&@io.Data`（不是 String）**：转 String 用 `data.text()`（raise），
+  且 **read_file 是 async** —— helper 得是 `async fn`。用 `@io.Data::text`。
+- **`@fs.write_file(path, String)` 直接传 String 值**（String 实现 `@io.Data`），不用 `&string`。
+- **`@fs.mkdir(path, recursive = true)`** 确保父目录（write_file 不自动建目录）。
+- **`catch { _ => "..." }`**：catch 分支类型须与 try 的 ok 类型一致；忽略错误用 `_ =>`。
+- **moon.work 嵌套项目**：子项目（如 `site/`）挂父库用 **`..`**（指向库根），
+  不要 `../moonbit-css-helper`（会多一层，报 No such file）。
+- **`moon add` 一次一个模块**：`moon add <module>@<ver>`（单数），不能一次列多个。
+- 产出的 `.html` 里 `<link rel="stylesheet" href="tailwind.css">` 引用**同目录** CSS；
+  `<script id="__rabbita_transcript">` 是 SSR 附加，对静态页无害。
+
 ## 相关工具链坑（详见 patches.md 补丁23）
 
 - `MOON_CC` 环境变量（native backend 需 C 驱动，工具链可能找 `/usr/bin/lib.exe`）
