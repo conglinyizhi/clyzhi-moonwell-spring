@@ -185,6 +185,10 @@ async fn main {
 - **moon.work 嵌套项目**：子项目（如 `site/`）挂父库用 **`..`**（指向库根），
   不要 `../moonbit-css-helper`（会多一层，报 No such file）。
 - **`moon add` 一次一个模块**：`moon add <module>@<ver>`（单数），不能一次列多个。
+- **rabbit SSR 的 `<head>` 不带 `<meta charset="utf-8">`**：`@html.node("head", ...)` 生成的
+  head 只有你放的内容 + `__rabbita_transcript` script，**没有 charset 声明**。SSG 写盘前
+  用字符串 `html.replace(old="<head>", new="<head><meta charset=\"utf-8\">")` 注入，
+  否则中文/特殊字符在浏览器可能按默认编码乱码。rabbit `Attrs` 没有 `charset` 方法。
 - 产出的 `.html` 里 `<link rel="stylesheet" href="tailwind.css">` 引用**同目录** CSS；
   `<script id="__rabbita_transcript">` 是 SSR 附加，对静态页无害。
 
