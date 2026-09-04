@@ -191,6 +191,10 @@ async fn main {
   否则中文/特殊字符在浏览器可能按默认编码乱码。rabbit `Attrs` 没有 `charset` 方法。
 - 产出的 `.html` 里 `<link rel="stylesheet" href="tailwind.css">` 引用**同目录** CSS；
   `<script id="__rabbita_transcript">` 是 SSR 附加，对静态页无害。
+- **SSG 静态渲染的可编辑元素 + JS 动态宽度**：rabbita 渲染的 `<input value=...>` 是**静态**的；
+  若宽度靠浏览器 JS 动态调（如按内容 `ch` 设宽 `fitInput`），**静态渲染的 input 不会被 fit** →
+  用浏览器默认宽度（偏宽 / 控件松散 / 换行）。JS 初始化须对静态渲染的元素**补调 fitInput**（
+  例：`bindVars` 里 `fitInput(nameInp); fitInput(valInp)`），否则 `width:auto` / `field-sizing` 靠不住。
 
 ## 相关工具链坑（详见 patches.md 补丁23）
 
