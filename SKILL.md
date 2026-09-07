@@ -1,87 +1,75 @@
 ---
 name: clyzhi-moonwell-spring
 description: >
-  MoonBit 官方技能热修复层·月井之春。必须与官方 moonbit-* 技能同时加载。
+  MoonBit 生态与常见实战坑的导航层。必须与官方 moonbit-* 技能同时加载。
 ---
 
-# MoonBit Hotfix Skills · 月井之春
+# 月井之春：MoonBit 导航层
 
-> 官方 [moonbitlang/skills](https://github.com/moonbitlang/skills) 的热修复层。
-> **必须与官方 moonbit-\* 系列技能同时加载。** 本技能只记录官方技能尚未覆盖或已过时的内容，
-> 不重复官方技能已有信息。内容冲突时以本技能为准。
+> 本技能是导航和提醒，不是 MoonBit 全量手册。
+> **必须先加载官方 `moonbit-*` 技能**；语言、工具链、FFI、证明和重构等通用知识交给官方技能维护。
+> 月井之春只补充：常见失败表现、个人实战坑、Mooncakes 生态和专项开发流程。
 
-**配置**：[moonwell.toml](moonwell.toml) | **仓库**：[conglinyizhi/clyzhi-moonwell-spring](https://github.com/conglinyizhi/clyzhi-moonwell-spring)
+## 加载顺序
 
----
+1. 先读取本文件，判断任务类别和错误表现
+2. 读取 `references/index.md` 做粗分流
+3. 按命中的主题读取对应子导航
+4. 只有需要具体历史细节时，才读取专项 playbook 或历史记录
+5. exact API、包版本和 target 支持必须以本地工具链、项目文件或 Mooncakes 当前页面为准
 
-## 触发条件
+## 粗分流
 
-以下关键词/场景触发本技能（与官方 moonbit-\* 技能同时加载）：
+- MoonBit 语法、类型、包布局、`moon` 命令或编译目标：先读官方 skill，再看 `references/official-skills.md`
+- 编译器诊断、warning 或 API 不确定：读 `references/failure-index.md`，再回到官方 skill / `moon ide doc`
+- 查找、评估或组合 Mooncakes 包：读 `references/mooncakes.md`
+- 发布包、升级版本、下游依赖找不到新版本：读 `playbooks/mooncakes-publish.md`
+- 从零做 Rabbita / moonback 网站：读 `playbooks/rabbita-fullstack.md`；先问是否要跑完整开发流程
+- C FFI、native 胶水或跨平台桌面集成：读官方 `moonbit-c-binding` / `make-moonbit-c-bindings`，再查 `references/failure-index.md`
+- 更新月井之春本身：读 `maintenance/update-skill.md`
+- 追溯某次历史决定或失败：读 `history/README.md`；不要把历史记录当作当前规则
 
-- 使用 MoonBit 开发、编写 `.mbt` 代码
-- 配置 `moon.mod`、`moon.pkg`、`moon.work`
-- 执行 `moon check`、`moon build`、`moon test`、`moon run`、`moon fmt`、`moon new`
-- 使用 `moon work`、`moon prove`、`moon runwasm`、`moon fetch`
-- 涉及 C FFI 绑定、形式化验证、WASM 编译目标、`.mbtx` 脚本
-- 编写 HTTP / JSON API / `async fn main` 服务端（官方 async 库无后端框架，见补丁20）
-- 使用 Rabbita / moonback / warren 开发全栈 SSR（见补丁22 + `references/rabbita-fullstack.md`）
-- 接入大模型（OpenAI / Anthropic / MCP）或 Linux 桌面集成（D-Bus / 托盘）——先查补丁24 生态包速查，别手写协议
-- 用户要求「更新 moonwell-spring」或 moon 版本升级后
+## 错误表现提醒
 
----
+遇到问题时，先按“错误长什么样”检索，而不是凭模块名猜：
 
-## 执行
+- **`no version satisfies requirement ...` / 发布包解包复检失败**：通常命中 Mooncakes registry 或依赖传播，读 `playbooks/mooncakes-publish.md`
+- **`moon ide doc` 返回空、`unimplemented` 或 API 与记忆不符**：先确认项目上下文、依赖、target 与符号索引，再读官方 API；旧的 `@async/fs` 默认 target 陷阱已在 `0.1.20260904` 失效，见 `references/failure-index.md`
+- **`native` run/build 找不到 C 编译器、链接器或 `/usr/bin/lib.exe`**：读官方 C binding skill，再查 failure index；当前 nightly 仍可因 compiler 选择失败，必要时显式设置有效的 `MOON_CC`
+- **Rabbita 页面能 SSR 但首屏数据为空、hydration / static 路径异常**：读 `playbooks/rabbita-fullstack.md`
+- **sync trait 方法里调用 async 函数**：当前 nightly 会报 `E4149`，不再静默忽略 impl；读 `references/failure-index.md`
+- **看到一个熟悉的包名但不确定版本/API/target**：先 `moon search <query>`，再 `moon add` 到临时模块或读取 Mooncakes docs
 
-本技能有两种执行模式：
+## 官方 skill 委派
 
-### 模式 A：知识覆盖（默认，每次加载）
+官方技能存在时优先让它们维护重复内容：
 
-Agent 加载本技能后会以本技能的知识优先参考。日常加载用精简索引 `references/patches.min.md`，需要详情时按条目编号查阅 `references/patches.md`。
+- `moonbit-orientation`：能力判断、信息源选择、API 新鲜度
+- `moonbit-agent-guide`：项目结构、测试、`moon` 工作流
+- `moonbit-c-binding`：MoonBit C FFI 基础
+- `make-moonbit-c-bindings`：完整 C/C++ 绑定工程流程
+- `moonbit-refactoring`：MoonBit 重构与 API 设计
+- `moonbit-proof`：Why3 / 证明携带代码
+- `moonbit-spec-test-development` / `moonbit-extract-spec-test`：规格与测试
 
-### 补丁内容
+若本地没有官方 skill：
 
-→ 精简索引：**`references/patches.min.md`**（24 条目索引 + 生态包速查 + 官方信息来源 + 官方技能对照）
-→ 完整详情：**`references/patches.md`**（24 条目详细说明）
-→ Rabbita 全栈 SSR：**`references/rabbita-fullstack.md`**
+1. 从官方仓库 https://github.com/moonbitlang/skills 查对应目录和 `SKILL.md`
+2. 可以联网读取就直接读取远程内容
+3. 仍无法确认时，再将仓库拉到临时本地目录后读取
+4. 不要把未验证的官方内容复制进月井之春
 
-### 模式 B：版本更新（用户触发）
+## Mooncakes 与 Rabbita 提醒
 
-当用户表达需要更新「moonwell-spring」、月井之春、月井等名词；或 moon 版本变化时执行。
-具体步骤见 `references/update-workflow.md`。
+- 需要做 plan、前导调查或包选型：先进入 `references/mooncakes.md`；个人包也必须按同一条证据链重新核验
+- 要从零搭建 Rabbita / moonback 网站：进入 `playbooks/rabbita-fullstack.md`；该 playbook 会要求先确认是否启动 Warren 的完整热更新开发流程
 
-## 注意事项
+## 维护入口
 
-- 本技能内容基于 `tracked_version` 验证。如果 `moon --help` 实际输出与本文档不一致，**以工具输出为准**，并触发更新流程
-- `moon ide doc` 是 API 发现的首选方式，比文本搜索更准确
-- moon.work 仍在迭代中（3 个 open issue），单模块仓库暂不需要
-- `moon.mod.json` → `moon.mod` 迁移不可逆，`moon fmt` 后本地路径依赖会丢失——提前用 `moon.work` 替代
-- `.mbtx` 脚本可通过 `@async/process` + `@async/fs` 进行跨平台子进程调用和文件 I/O，官方技能未提此能力（详见 `references/patches.md` 补丁17）
-- HTTP 服务：无 Express 级框架；`moon new` 默认 `preferred_target = "wasm"`，服务端须改 `native` + `moonbitlang/async`（补丁20）
-- 数组模式至多一个 `..`；部分类型弃用 `Show` 插值，改用 `@debug.to_string` / `repr`（补丁21）
-- ⚠️ `moon ide doc "@async/fs"` 在非模块上下文可能仅返回 `unimplemented`，不代表包空。详见 `references/moon-ide-doc-gotcha.md`。
-- Rabbita / moonback 全栈 SSR 为官方技能未覆盖生态，见 `references/rabbita-fullstack.md`（补丁22）；`moonbit-community/rabbita` 大量 API 带 `#internal(experimental)`，用前在入口 `#warnings("-alert_experimental")` 压制
-- **接大模型不要手写 OpenAI/Anthropic 规范**：`tonyfettes/openai`（轻量）、`QuietlyChan/moonai`（双协议统一层）已覆盖；接 Linux 托盘/D-Bus 用 `conglinyizhi/moondbus` + `moonsni`。详见补丁24
-
----
-
-## 验证
-
-运行跨平台验证脚本（需要 `moon` + `moonbitlang/async`）：
-
-```bash
-moon run scripts/verify.mbtx --target native
-```
-
-输出格式范例：
+用户说“更新月井之春”时只读取并遵守：
 
 ```text
-[PASS] moon version
-expected: 0.1.20260826
-actual:   0.1.20260826
-
-[FAIL] moon --help command count
-expected: ≥ 27
-actual:   3
+maintenance/update-skill.md
 ```
 
-5 项检查全部 [PASS] ≈ 技能新鲜，至少保证本地可以使用这套技能。若 native 构建报 C 编译器/链接器错误，先设置 `MOON_CC=cc` 或其他可用编译器。
+该文件规定：官方 skill 优先、Mooncakes 事实核验、常见坑的错误表现索引、历史记录边界、文件拆分和验证要求。不要直接把新资料堆进本文件。

@@ -1,9 +1,10 @@
 # moonwell-spring 配置
 # 本文件是 moonwell-spring 技能的唯一权威数据源。
-# SKILL.md / verify.mbtx / update-workflow.md 均从此读取。
+# 验证脚本读取本文件；知识导航和维护规则在 maintenance/ 中。
 
-tracked_version = "moon 0.1.20260828 (9f6a631 2026-08-28)"
-last_updated = "2026-09-01"
+tracked_version = "moon 0.1.20260904 (94521db 2026-09-04)"
+last_updated = "2026-09-07"
 min_attributes = 23
 min_commands = 38
-# 补丁条目数（patches.md / patches.min.md）= 24；版本未变时仅做实战增补
+patch_count = 25
+# 旧补丁编号仅用于兼容索引；新知识优先写入 references/、playbooks/ 或 history/
