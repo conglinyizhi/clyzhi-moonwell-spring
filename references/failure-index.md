@@ -159,3 +159,45 @@
 - **`TcpServer::run_forever` 对每个连接 `spawn_bg`（`allow_failure` 默认 true）**
   - 含义：请求处理天然并发；处理函数里的一次 `abort()` 会带走**整个进程**，不是只断那一条连接
   - 推论：请求路径上任何全局可变资源（`@stdio` 句柄、单例连接、共享 Map）都要显式串行化
+
+- **`The type Error is not a trait`**（error 4100）
+  - 现象：写 `pub impl Error for MyError with message(self) { ... }`
+  - 根因：新版 core 里 `Error` 是**内置类型**不是 trait（`pub fn Error::to_string(self : Error) -> String`）
+  - 修法：直接删掉该 impl。`suberror X { ... }` 本身就能作为 `Error` 值进 `Result[T, Error]`，
+    函数签名写 `-> Result[T, Error] noraise` 即可，构造 `Err(X(...))` 会自动协变
+
+- **`Using constructors as higher order function directly is forbidden.`**（error 4203）
+  - 现象：`on_click=emit(SetTab)`、`tag=SomeLoaded` 这类把带参构造器当函数传
+  - 修法：包一层闭包 —— `fn(v) { emit(SetTab(v)) }` / `fn(r) { SomeLoaded(r) }`
+  - 注意：`emit` 的签名是 `(Msg) -> Cmd`，而 `emit(Constr)` 得到的是 `(T) -> Cmd`，类型对不上
+
+- **`Function with labelled arguments can only be applied directly.`**（error 4117，常连带 `Using constructors as higher order function directly is forbidden`）
+  - 现象：`let m = Map[String, Json]([])`
+  - 根因：`Map` 构造器带 labelled 参数，不能这样显式套类型参数调用
+  - 修法：写 `let m = Map([])`，类型交给上下文推断（或 `let m : Map[String, Json] = Map([])`）
+
+- **Rabbita：`@async/http` 的 JS 后端要求绝对 URL**
+  - 现象：浏览器里 `@http.get("/v1/modes")` 抛 `InvalidFormat`，页面静默失败
+  - 根因：`resolve_url` 只认 `http://` / `https://` 前缀（`async/src/http/request.mbt`），
+    不像浏览器 `fetch` 那样接受相对路径
+  - 修法：`extern "js" fn page_origin() -> String = "() => window.location.origin"`，
+    拼 `page_origin() + path`
+  - 同类：`@rabbita/http` 的 `op.mbt` 内部会 `resolve_request_url(url, origin)`，
+    所以用它时相对路径反而没问题；只有直接调 `@async/http` 才要自己拼
+
+- **Rabbita：`@rabbita/http` 不支持自定义请求头**
+  - 根因：`op.mbt` 只写 `Content-Type` 与 `User-Agent`
+  - 后果：Bearer 鉴权的接口没法用它，得 `@cmd.perform(fn(r) { GotX(r) }, async fn() { ...@async_http... })` 自己拿 header 控制权
+
+- **Rabbita：初始加载要 `create_state_with_init`，`create_state` / `elmish` 没有初始 Cmd 口子**
+  - 现象：`create_state` 的 init 固定是 `_ => (model, none)`，首屏想自动拉数据没地方挂
+  - 修法：`@rabbita.create_state_with_init(init=fn(emit) { (model, load_cmd(emit)) }, update~)`
+  - 约束：`Model : Eq`；原地修改后要返回**新值**（或像本项目那样用 `version` 计数器实现 `Eq`），
+    否则 `Val` 变更检测认不出变化，界面不刷新
+
+- **Rabbita：hash 路由用 `@sub.on_url_changed` + `url.fragment`**
+  - 要点：该订阅是 **app-scoped**，只有根 cell 的 `subscriptions` 返回它才生效
+  - 写法：`subscriptions=fn(_, emit) { @sub.on_url_changed(fn(u) { emit(UrlChanged(u)) }) }`，
+    update 里 `match url.fragment { Some("modes") => Modes; ... }`；
+    切标签时自己写 `window.location.hash`
+  - 只写 hash 不订阅的话，浏览器前进/后退不会更新界面
