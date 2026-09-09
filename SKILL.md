@@ -38,6 +38,8 @@ description: >
 - **`native` run/build 找不到 C 编译器、链接器或 `/usr/bin/lib.exe`**：读官方 C binding skill，再查 failure index；当前 nightly 仍可因 compiler 选择失败，必要时显式设置有效的 `MOON_CC`
 - **Rabbita 页面能 SSR 但首屏数据为空、hydration / static 路径异常**：读 `playbooks/rabbita-fullstack.md`
 - **sync trait 方法里调用 async 函数**：当前 nightly 会报 `E4149`，不再静默忽略 impl；读 `references/failure-index.md`
+- **跨包构造报 `Cannot create values of the read-only type`**：类型需要 `pub(all)`；impl 需要 `pub`，否则下游报 `does not implement trait ... although an impl is defined`；读 `references/failure-index.md`
+- **FFI 传字符串乱码 / `strlen` 异常**：`String::to_bytes()` 是 UTF-16，跨 C FFI 必须 `@utf8.encode()`；读 `references/failure-index.md`
 - **看到一个熟悉的包名但不确定版本/API/target**：先 `moon search <query>`，再 `moon add` 到临时模块或读取 Mooncakes docs
 
 ## 官方 skill 委派

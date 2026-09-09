@@ -21,6 +21,16 @@
 - native link / C compiler 错误：native 工具链或 FFI 配置；加载官方 C binding skill
 - SSR 首屏无数据、页面资源 404 或热更新开发体验异常：Rabbita / moonback 流程误用；读 `../playbooks/rabbita-fullstack.md`
 - sync trait 方法调用 async 函数：`0.1.20260904` 已从静默失效改为 `E4149` 诊断；读 `failure-index.md`，再查官方文档
+- `Cannot create values of the read-only type` / `There is no record definition with the fields`：跨包构造需要 `pub(all) struct` / `pub(all) enum`；读 `failure-index.md`
+- `Type X does not implement trait T, although an impl is defined`：impl 少了 `pub`；读 `failure-index.md`
+- 把 `String::to_bytes()` 传给 C 得到乱码 / `strlen` 异常：`to_bytes()` 返回 UTF-16，跨 FFI 改用 `@utf8.encode`；读 `failure-index.md`
+- FTS5 中文搜不到（英文正常）：`unicode61` 不切 CJK，需 bigram 预处理；读 `failure-index.md`
+- `Cannot implement trait 'X' because it is readonly.`：`pub trait` 只能被外部使用，不能实现；改 `pub(open) trait`；读 `failure-index.md`
+- `Cannot implement foreign trait ... for foreign type ...`：孤儿规则，impl 必须与 trait 或类型同包；读 `failure-index.md`
+- `Warning (implicit_impl_as_method)`：用 `x.m()` 调 trait 方法已废弃，需 `pub extend X with T::{m}`；读 `failure-index.md`
+- `Using let statement in 'the action part of a matching case' directly is not allowed`：match 多语句分支要加 `{}`；读 `failure-index.md`
+- `Expected lower case identifier for name of let`：顶层 `let` 名必须小写（大写用 `const`）；读 `failure-index.md`
+- 本地毫秒级接口部署后变秒级、多个请求同一毫秒一起返回：SQLite WAL 下 `synchronous` 默认仍是 FULL，每写一次 fsync；读 `failure-index.md`
 
 ## 资料优先级
 
