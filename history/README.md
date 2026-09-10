@@ -13,6 +13,14 @@
 - 验证：命令、页面或包版本
 ```
 
+## 2026-09-10：补录工具链 / 运行时行为类坑位
+
+- 现象：`.mbtx` 默认 target、`println` 缓冲、`@fs.write_file` 的 create 语义、`moon add` 不升级、`@http.Request.path` 带 query 这几类问题都不产出编译器报错原文，按报错搜搜不到；`App::mount` 的裸 id 要求只在 `rabbita-fullstack-notes.md` 历史里，用 playbook 时看不到
+- 结论：在 `../references/failure-index.md` 新增「工具链与运行时行为（没有编译器报错可搜）」一节（8 条）；`mount` 的那条提升到 `../playbooks/rabbita-fullstack.md` 的常见失败表现；`Bytes::to_unchecked_string()` 作为已有 `to_bytes()` 条目的反方向补充，不另建条目
+- 补充：错误码全集不另建索引——`moon explain --diagnostic` 不带参数即列出全部 warning 与非 warning 诊断，且来自本机编译器；在 `failure-index.md` 顶部补了这一条与可用的文档 URL
+- 影响文件：`../references/failure-index.md`、`../references/index.md`、`../playbooks/rabbita-fullstack.md`
+- 验证：moon `0.1.20260904` 下逐条最小复现；`moon explain --diagnostic [<id>]` 与 `--attribute` 实跑；错误码文档页 URL 实测 200/404
+
 ## 2026-09-07：导航层重构与 Mooncakes 发布经验
 
 - 现象：总入口、补丁汇总、专项流程和更新日志混在一起，默认加载成本高；Mooncakes 发布经验需要可复用的独立流程

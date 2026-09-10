@@ -3,6 +3,13 @@
 这是索引，不是语言手册。命中后先读官方 skill 和当前工具输出；历史记录只解释“为什么曾经这样处理”。状态以 moon `0.1.20260904`（2026-09-04）复测为准。
 
 - 编译器报具体诊断码，或某 API 签名不确定：`moon explain --diagnostic <code-or-name>`、`moon ide doc`、官方 `moonbit-orientation`
+- **想查错误码 / warning 全集，不要另建索引**：`moon explain --diagnostic` 不带参数就会列出全部
+  （前半是约 90 条 warning 的 mnemonic/description/id/state，后半是 `Available non-warning diagnostics`），
+  且它来自**本机编译器**本身，比抄一份静态索引可靠。`moon explain --diagnostic 4014`（可省 `E`）
+  给出完整解释与错误示例；`moon explain --attribute` 列全部属性
+- 不在终端时查单个码：`https://docs.moonbitlang.com/en/latest/language/error_codes/E0001.html`
+  （必须是 `.com` + `/en/latest/`；`.cn` 同名路径与 `error_codes.html` 索引页都是 404，
+  `_sources/...md` 是 Sphinx 原始源文件）
 - `moon ide doc` 返回 `unimplemented` / 没有预期 API：先确认模块、依赖、target 和本机符号索引；旧的 `@async/fs` 默认 target 陷阱已于 `0.1.20260904` 消失，详见 `moon-ide-doc-gotcha.md`
 - native `moon run` / `moon build` 找不到 C compiler、linker 或 `/usr/bin/lib.exe`：官方 `moonbit-c-binding`、`make-moonbit-c-bindings`；`0.1.20260904` 当前机器未设 `MOON_CC` 仍可复现，设置 `MOON_CC=gcc` 后通过。它是环境 / toolchain 选择问题，不要泛化成所有项目都会失败
 - async trait 的同步方法调用 async 函数：旧的“编译通过但 impl 静默丢弃”已于 `0.1.20260904` 消失；当前报 `E4149 cannot call async function in non-async function`，见 `../history/legacy-patches.md` 的补丁23与 `../history/nightly-retest-20260904.md`
@@ -61,6 +68,11 @@
   - 修法：MoonBit → C 一律 `@utf8.encode(s)`；C → MoonBit 返回 `moonbit_bytes_t` 后 `@utf8.decode_lossy(b)`
   - 附加：**不要假设 `Bytes` 有 NUL 结尾**。需要 `const char*` 的地方，C 侧自己 `malloc` + `memcpy` + 补 `\0`
   - 最小复现：C 探针同时返回 `strlen((const char*)b)` 与 `Moonbit_array_length(b)`，两者不一致即中招
+  - **反方向同样中招：`Bytes::to_unchecked_string()` 不是 UTF-8 解码**。它把字节按 UTF-16 码元重新解释，
+    读 HTTP 响应体 / 文件用它，非 ASCII 直接变乱码。正确写法是 `&@io.Data::text()` 或 `@utf8.decode(b)`
+  - 实测：`@utf8.encode("请求频率过高")` 得 18 字节；`to_unchecked_string()` 得长度 9 的乱码，
+    `@utf8.decode` 得长度 6 的正确文本。**只测 ASCII 负载时两边都对**，必须用非 ASCII 才暴露
+  - 跨实现边界时尤其危险：客户端和服务端如果都只在 ASCII 上测过，这个错误会一直活着
 
 - **`This expression has type () -> Json, wanted Json`**
   - 根因：`Json::null` 是构造函数（函数），不是值
@@ -201,3 +213,55 @@
     update 里 `match url.fragment { Some("modes") => Modes; ... }`；
     切标签时自己写 `window.location.hash`
   - 只写 hash 不订阅的话，浏览器前进/后退不会更新界面
+
+## 工具链与运行时行为（没有编译器报错可搜）
+
+这些坑的共同点：命令能跑起来，或者报错文本本身极具误导性，按报错原文搜搜不到。
+状态以 moon `0.1.20260904`（2026-09-10 逐条复现）为准。
+
+- **`.mbtx` 脚本默认编译目标是 wasm，不是 native**
+  - 表现：`extern "c" fn` 报 `Error: [4156] extern "C" is unsupported in wasm backend`；
+    `@process.spawn_orphan` / `read_from_process` 报 `Value spawn_orphan not found in package process`
+  - 根因：不是 API 不存在，是 `@process` 的进程 / 管道部分在 wasm 后端里就没有
+  - 修法：一律 `moon run --target native foo.mbtx`
+
+- **`.mbtx` 里 `async fn main` 必须 import `moonbitlang/async` 本体**
+  - 表现：`Error: [4037] Cannot use 'async fn main': package moonbitlang/async is not imported.`
+  - 根因：只 import 子包（`.../fs`、`.../stdio`、`.../http`）不算，本体要单独列出
+  - 修法：import 列表里加不带子路径的那一行。普通包（带 moon.pkg 的）里是同样规则
+
+- **`.mbtx` 的子包 import 必须带版本号**
+  - 表现：`Failed to parse single file front matter configuration: multiple versions specified for module 'moonbitlang/async': '0.20.1' and '0.21.3'`
+  - 根因：`"moonbitlang/async@0.20.1"` 带了版本，而 `"moonbitlang/async/http"` 没带、按 registry 最新版解析，同一模块出现两个版本
+  - 修法：同一模块每一行都写成「模块@版本/子包」，如 `"moonbitlang/async@0.20.1/http"`
+
+- **`moon build foo.mbtx` 的产物名是固定的 `single.exe`**
+  - 路径：`<脚本所在目录>/_build/native/debug/build/single/single.exe`
+  - 后果：同一目录下编译两个 `.mbtx` 会互相覆盖
+  - 用法：要同时持有多个脚本产物，build 完立刻 `cp` 成独立文件名再运行
+
+- **`println` 写重定向的 stdout 是块缓冲的；stderr 不是**
+  - 现象：脚本 `println(...)` 后输出重定向到文件，**进程还在跑时文件一直是空的**；进程被 kill 时整块丢失
+  - 修法：需要「立刻可见」的输出改用 `@stdio.stdout.write(...)`，或直接走 stderr
+  - 实测：同一进程里 `@stdio.stderr.write` 的内容立刻可见，`println` 的内容要等进程退出
+  - 典型受害场景：测试脚本从子进程 stdout 读端口号做握手——用 `println` 会永远等不到；
+    后台服务把日志写 stdout 再被 kill，日志会整块消失，排查时看起来像「什么都没发生」
+
+- **`@fs.write_file` 不传 `create` 不会创建新文件**
+  - 表现：`OSError("@fs.open(): \"new.txt\": No such file or directory")`，**但目录明明存在**
+  - 根因：`create`（是权限值，不是布尔开关）缺省时 `create_mode` 落到 `TruncateExisting`
+  - 修法：要新建就写 `create_mode=@fs.CreateOrTruncate`
+  - 实测：同一目录下，新文件 + 默认 → 报错；新文件 + `create_mode` → 成功；已存在文件 + 默认 → 成功
+  - 这个报错极具误导性：按 `No such file or directory` 排查会去怀疑路径、权限、cwd，全都不对
+
+- **`moon add pkg@版本` 对已存在的依赖是 no-op**
+  - 表现：`Warning: dependency 'x/y' already exists, 'moon add' will not update it. To update ... run 'moon add --upgrade x/y@<version>'`
+  - 后果：**在同一个模块里连续 add 两个版本做对比，会拿到同一份代码**——据此得出「两个版本行为一样」的结论是假的
+  - 修法：升级用 `moon add --upgrade x/y@<version>`；做版本对比实验时每个版本用干净模块
+  - 隐蔽点：warning 不阻断流程，`moon.mod` 静默不变，很容易以为已经切过去了
+
+- **`@http.Request` 的 `path` 带 query string**
+  - 表现：路由匹配 `/api/meta` 失败；`/?autorun=1` 被当成一个不存在的静态文件名，返回 404
+  - 根因：`request.path` 是完整 request-target，值为 `"/x/y?a=1&b=2"` 这种
+  - 修法：路由前先按 `?` 切一刀：`match raw.find("?") { Some(i) => raw[:i].to_owned(); None => raw }`
+  - 官方 `moonbitlang/async` 的 `examples/http_file_server` 也是这样处理的

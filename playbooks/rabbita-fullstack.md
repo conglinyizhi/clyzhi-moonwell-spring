@@ -48,6 +48,7 @@ warren dev
 - **中文或特殊字符乱码**：静态 HTML 的 `<head>` 缺少 charset
 - **一开始就做 hydration，开发长期卡在 transcript / state 注入**：先做 SSR/MPA vertical slice，再评估 hydration
 - **把 native 库包直接给 JS 前端 import**：共享 `app/` 与 native 后端库边界混了，数据应通过 API 传递
+- **`App::mount` 抛 `$PanicError`、页面全白**：栈里是 `Nullable::unwrap` → `VDom::initialize`。参数是**裸 id**，内部走 `document.getElementById`，写 `"#app"` 查不到元素就直接 abort。正确写法 `app.mount("app")`
 
 ## 验收
 

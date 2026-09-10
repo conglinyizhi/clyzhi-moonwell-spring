@@ -31,6 +31,12 @@
 - `Using let statement in 'the action part of a matching case' directly is not allowed`：match 多语句分支要加 `{}`；读 `failure-index.md`
 - `Expected lower case identifier for name of let`：顶层 `let` 名必须小写（大写用 `const`）；读 `failure-index.md`
 - 本地毫秒级接口部署后变秒级、多个请求同一毫秒一起返回：SQLite WAL 下 `synchronous` 默认仍是 FULL，每写一次 fsync；读 `failure-index.md`
+- `.mbtx` 脚本报错（`extern "C" is unsupported in wasm backend` / `Value spawn_orphan not found in package process` / `Cannot use 'async fn main': package moonbitlang/async is not imported`）：默认目标是 wasm，且 `async fn main` 要求 import `moonbitlang/async` 本体；读 `failure-index.md`
+- `println` 到重定向的 stdout 长时间不出内容、进程被 kill 后日志整块丢失：`println` 是块缓冲，改用 `@stdio.stdout.write` 或 stderr；读 `failure-index.md`
+- `@fs.open(): ... No such file or directory` 但目录确实存在：`write_file` 不传 `create` 默认走 `TruncateExisting`，新建文件要 `create_mode`；读 `failure-index.md`
+- `moon add pkg@新版本` 后 `moon.mod` 没变：对已存在的依赖是 no-op，升级要 `--upgrade`；版本对比实验会拿到同一份代码；读 `failure-index.md`
+- `@http.Request.path` 匹配不上路由（如 `/?a=1` 返回 404）：它带 query string，路由前先按 `?` 切；读 `failure-index.md`
+- `App::mount` 抛 `$PanicError`、页面白屏，栈里有 `VDom::initialize`：参数是裸 id（内部用 `getElementById`），不能写 `"#app"`；读 `../playbooks/rabbita-fullstack.md`
 
 ## 资料优先级
 
