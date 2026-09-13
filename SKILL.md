@@ -26,6 +26,7 @@ description: >
 - 发布包、升级版本、下游依赖找不到新版本：读 `playbooks/mooncakes-publish.md`
 - 从零做 Rabbita / moonback 网站：读 `playbooks/rabbita-fullstack.md`；先问是否要跑完整开发流程
 - C FFI、native 胶水或跨平台桌面集成：读官方 `moonbit-c-binding` / `make-moonbit-c-bindings`，再查 `references/failure-index.md`
+- 把产物接进 Node / JS（js 或 wasm-gc target、`#export_name`、`extern "js"`、导入 .wasm 报错）：读 `playbooks/js-wasm-interop.md`
 - 更新月井之春本身：读 `maintenance/update-skill.md`
 - 追溯某次历史决定或失败：读 `history/README.md`；不要把历史记录当作当前规则
 
@@ -40,6 +41,8 @@ description: >
 - **sync trait 方法里调用 async 函数**：当前 nightly 会报 `E4149`，不再静默忽略 impl；读 `references/failure-index.md`
 - **跨包构造报 `Cannot create values of the read-only type`**：类型需要 `pub(all)`；impl 需要 `pub`，否则下游报 `does not implement trait ... although an impl is defined`；读 `references/failure-index.md`
 - **FFI 传字符串乱码 / `strlen` 异常**：`String::to_bytes()` 是 UTF-16，跨 C FFI 必须 `@utf8.encode()`；读 `references/failure-index.md`
+- **wasm-gc 导入 Node 报 `Cannot find package '_'`**：`imported-string-constants` 没指到 `wasm:js/string-constants`（官方 skill 的示例值 `"_"` 在 Node 下正好坏）；读 `playbooks/js-wasm-interop.md`
+- **`type incompatibility when transforming from/to JS`**：wasm-gc 没开 `use-js-builtin-string`；读 `playbooks/js-wasm-interop.md`
 - **看到一个熟悉的包名但不确定版本/API/target**：先 `moon search <query>`，再 `moon add` 到临时模块或读取 Mooncakes docs
 
 ## 官方 skill 委派

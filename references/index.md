@@ -8,6 +8,7 @@
 - Mooncakes 包搜索、个人包、版本或 target 评估：`mooncakes.md`
 - 编译失败、warning 或行为异常的表现检索：`failure-index.md`
 - Rabbita + moonback 全栈网站：`../playbooks/rabbita-fullstack.md`
+- 产物接入 Node / JS（js 与 wasm-gc target、`#export_name`、`extern "js"`）：`../playbooks/js-wasm-interop.md`
 - Mooncakes 发布：`../playbooks/mooncakes-publish.md`
 - 更新本 skill：`../maintenance/update-skill.md`
 - 历史复盘：`../history/README.md`
@@ -27,6 +28,11 @@
 - FTS5 中文搜不到（英文正常）：`unicode61` 不切 CJK，需 bigram 预处理；读 `failure-index.md`
 - `Cannot implement trait 'X' because it is readonly.`：`pub trait` 只能被外部使用，不能实现；改 `pub(open) trait`；读 `failure-index.md`
 - `Cannot implement foreign trait ... for foreign type ...`：孤儿规则，impl 必须与 trait 或类型同包；读 `failure-index.md`
+- wasm-gc 产物导入 Node 报 `Cannot find package '_'`：`imported-string-constants` 命名空间没指到 `wasm:js/string-constants`；读 `../playbooks/js-wasm-interop.md`
+- `type incompatibility when transforming from/to JS`：wasm-gc 缺 `use-js-builtin-string`；读 `../playbooks/js-wasm-interop.md`
+- `WebAssembly.instantiate(): Import #0 "wasm:js-string": module is not an object or function`：用 `WebAssembly.compile` 手动加载了 wasm；改走 ESM `import`；读 `../playbooks/js-wasm-interop.md`
+- `#export_name` 报 `can only be used in a foreign library`：包缺 `pkgtype(kind: "foreign_library")`（冒号不是等号）；读 `../playbooks/js-wasm-interop.md`
+- 导出的 async 函数在 JS 侧不能 `await`：CPS 形态，要 `@js_async.Promise::from_async` 包一层；读 `../playbooks/js-wasm-interop.md`
 - `Warning (implicit_impl_as_method)`：用 `x.m()` 调 trait 方法已废弃，需 `pub extend X with T::{m}`；读 `failure-index.md`
 - `Using let statement in 'the action part of a matching case' directly is not allowed`：match 多语句分支要加 `{}`；读 `failure-index.md`
 - `Expected lower case identifier for name of let`：顶层 `let` 名必须小写（大写用 `const`）；读 `failure-index.md`

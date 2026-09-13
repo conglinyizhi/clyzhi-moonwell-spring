@@ -214,6 +214,39 @@
     切标签时自己写 `window.location.hash`
   - 只写 hash 不订阅的话，浏览器前进/后退不会更新界面
 
+- **`#export_name "x" can only be used in a foreign library`**（E4219，moon `0.1.20260907` 实测）
+  - 修法：包声明加 `pkgtype(kind: "foreign_library")`
+  - **是冒号，不是等号**：`pkgtype(kind = "...")` 报 `Parsing error: unexpected token`
+  - 这条报错也是判断「当前包能不能导出符号」最快的手段
+
+- **`data did not match any variant of untagged enum BoolOrLink`**（moon `0.1.20260907` 实测）
+  - 场景：给 wasm-gc 的 `imported-string-constants` 传布尔或数组
+  - 根因：该键只收字符串。传 `true` 或 `[...]` 都会落进这条；字符串值（含错误值）反而能通过解析
+  - 后果：解析通过不等于配置正确——**错误字符串要构建 + 导入后才暴露**，见下面的 `Cannot find package '_'`
+
+- **`Unexpected key 'link' found in moon.pkg`**（moon `0.1.20260907` 实测）
+  - 场景：照官方示例把 `link` 当 `moon.pkg` 顶层键写
+  - 修法：link 配置走 `options("link": {...})`；顶层只放 `supported_targets` / `pkgtype(...)` 这类
+  - 顶层写 `link({...})` 块形式报 `Unexpected key 'link' found in moon.pkg.`；
+    写 `"link": {...}` 对象形式报 `Parsing error: unexpected token "link"`；两种都不成立
+
+- **`unknown token` 出现在 `supported_targets` 里**（moon `0.1.20260907` 实测）
+  - 原文：`` invalid `supported_targets` expression `js,wasm-gc,native`: unknown token `js,wasm` ``
+  - 根因：**不是逗号分隔**，`+` 才是连接符；逗号会被当成 token 的一部分切在中间
+  - 修法：写 `supported_targets = "js+wasm-gc"`
+  - 报错尾部自带提示 `Valid examples: js or all-js+wasm-gc`——`all-js+wasm-gc` 形式合法，拿不准时照它写
+
+- **`Package 'x' does not support target backend 'wasm-gc'. Supported backends: [js]`**
+  （moon `0.1.20260907` 实测）
+  - 场景：`supported_targets` 只声明了 js，却直接 `moon build --target wasm-gc`
+  - 修法：先扩 `supported_targets`，再构建。报错里会直接列出当前支持的后端，不用猜
+
+- **`parse error` 指向 `extern "js"` 后的 `async`**（moon `0.1.20260907` 实测）
+  - 表现：`extern "js" async fn f() -> Unit = "..."` 解析失败，光标停在 `async`
+  - 根因：async 是 MoonBit 侧的效果，**不写在 extern 声明上**
+  - 修法：extern 只声明返回 `@js_async.Promise[T]`，async 留给调用方的 MoonBit 函数
+  - 同族：`async () => ...` 也是 parse error（`async` 只能在 `fn` 前）；箭头函数靠上下文推断 async-ness，直接写 `() => { ... }`
+
 ## 工具链与运行时行为（没有编译器报错可搜）
 
 这些坑的共同点：命令能跑起来，或者报错文本本身极具误导性，按报错原文搜搜不到。
@@ -265,3 +298,58 @@
   - 根因：`request.path` 是完整 request-target，值为 `"/x/y?a=1&b=2"` 这种
   - 修法：路由前先按 `?` 切一刀：`match raw.find("?") { Some(i) => raw[:i].to_owned(); None => raw }`
   - 官方 `moonbitlang/async` 的 `examples/http_file_server` 也是这样处理的
+
+- **wasm-gc 产物导入 Node 报 `Cannot find package '_'`**（moon `0.1.20260907` / Node `v26.8.1` 实测）
+  - 原文：`Error [ERR_MODULE_NOT_FOUND]: Cannot find package '_' imported from .../x.wasm`
+  - 根因：开了 `use-js-builtin-string` 但没指定字符串常量的命名空间。
+    MoonBit 把字符串字面量也做成导入，缺省命名空间是 `_`，Node 把它当裸包名去解析
+  - 修法：`options("link": {"wasm-gc": {"use-js-builtin-string": true, "imported-string-constants": "wasm:js/string-constants"}})`
+  - **官方 `moonbit-agent-guide` 的 `advanced-moonbit-build.md` 示例值是 `"_"`，那个值在 Node 下正好是这条报错**。
+    写 `"_"` 会重现，只是不报「配置错」，而是报「找不到包」——很容易往包管理方向排错
+  - 详细配方读 `../playbooks/js-wasm-interop.md`
+
+- **`type incompatibility when transforming from/to JS`**（moon `0.1.20260907` / Node `v26.8.1` 实测）
+  - 表现：`import` 报错文本很短，堆栈指向 `this.FunctionDescriptor`；把 `mb_scan("字符串")` 改成 `mb_scan(0)` 也一样报
+  - 根因：wasm-gc 没开 `use-js-builtin-string`，MoonBit 用自己的字符串表示，
+    JS 字符串不是合法的 `externref` 字符串
+  - 修法：补 `use-js-builtin-string: true` + `imported-string-constants: "wasm:js/string-constants"`
+  - 锚点：不要被「改传数字也报」带偏——它不是参数类型不匹配，是模块级 ABI 没配
+
+- **`TypeError: WebAssembly.instantiate(): Import #0 "wasm:js-string": module is not an object or function`**
+  （Node `v26.8.1` 实测）
+  - 场景：用 `WebAssembly.compile` / `instantiate` 手动加载 wasm-gc 产物
+  - 根因：**JS String Builtins 是编译期导入**，只在 ESM Integration 路径下链接。
+    官方原文：`they cannot be inspected via WebAssembly.Module.imports(mod)`，
+    走 `WebAssembly.compile` 相当于「with string builtins disabled」
+  - 修法：改用 ESM import——`import { mb_scan } from "./x.wasm"`
+  - 陷阱：`WebAssembly.Module.imports(mod)` 也看不到 builtin，**看不到不等于没有**；
+    别用「imports 是空的」证明模块自包含
+
+- **wasm-gc 的 JS 字符串互操作不需要任何 Node flag**
+  - 官方文档：JavaScript String Builtins（Added in v24.5.0 / v22.19.0，Stability 1.2 Release candidate），
+    `automatically enabled through the ESM Integration`
+  - 当前 CLI 文档已无 `--experimental-wasm-modules`；`.wasm` 是原生 ESM 扩展名
+  - 会打一条 `ExperimentalWarning: Importing WebAssembly module instances is an experimental feature`，不影响功能
+  - `--experimental-wasm-js-string-builtins` 之类的 flag **不存在**，Node 会报 `bad option`
+
+- **wasm-gc 跨边界只有标量和字符串直通**
+  - 直通：`Int` / `UInt` / `Double` / `Bool` / `String`（参数与返回都行，字符串零拷贝）
+  - 不直通：数组、元组、结构体返回的是不透明 wasm 引用，`console.log` 显示 `[Object: null prototype] {}`，
+    `typeof` 是 `object` 但没有 `length`
+  - wasm-gc **不生成 `.d.ts`**（js target 会生成），导出签名要自己维护
+  - 修法：需要复合返回值时，导出配套的取长度 / 取下标的函数，在 JS 侧手工编组
+
+- **js target 的 debug 产物比 release 慢得多**（moon `0.1.20260907` 实测）
+  - 表现：同一个字符扫描函数，debug 产物里有 `new _M0TPB8MutLocalGiE(0)` 和 `.val` 字段访问
+  - 根因：debug 下 `let mut` 编成堆上装箱对象，每次改动都是对象属性写；
+    `UInt16` 比较也变成函数调用而非 `===`
+  - 实测：debug 1.38x 于手写 JS，release 消除装箱后降到 1.24x
+  - 结论：**拿 js 后端做性能判断必须用 `--release`**，debug 数字没有参考价值
+
+- **导出的 `pub async fn` 是 CPS 形态，JS 不能直接 await**
+  - 表现：`#export_name` 的 async 函数在 JS 侧签名是 `f(s, _cont, _err_cont)`，
+    调 `await f(x)` 拿不到结果
+  - 修法：另包一层返回 Promise：
+    `pub fn f_js(s : String) -> @js_async.Promise[String] { @js_async.Promise::from_async(() => { f(s) }) }`
+  - 代价：async 会把整个协程运行时内联进产物。实测 20 行源码的 async 导出生成 **1,599 行 JS**，
+    其中自己的代码只占 14 行。纯逻辑模块不要为了省事引入 async

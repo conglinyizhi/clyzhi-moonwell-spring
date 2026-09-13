@@ -13,6 +13,21 @@
 - 验证：命令、页面或包版本
 ```
 
+## 2026-09-13：新增 JS / wasm 产物接入 Node 专项
+
+- 现象：把 MoonBit 产物接进 Node 时一连串报错都搜不到根因——`Cannot find package '_'`、
+  `type incompatibility when transforming from/to JS`、`WebAssembly.instantiate(): Import #0 "wasm:js-string"`。
+  官方 `moonbit-agent-guide` 的 link 配置示例把 wasm-gc 字符串命名空间写成 `"_"`，照抄到 Node 下正好是第一条报错
+- 结论：新建 `../playbooks/js-wasm-interop.md`，给出 js / wasm-gc / native 三个 target 的选择依据与导出配方；
+  `failure-index.md` 补 6 条编译器原文条目 + 7 条运行时行为条目；索引和 SKILL 粗分流各加入口
+- 关键事实：wasm-gc 字符串互操作必须走 ESM `import`（`WebAssembly.compile` 路径 builtins 是关的）；
+  命名空间要写 `wasm:js/string-constants`；Node 自 v24.5.0 / v22.19.0 起自动启用，无需 flag；
+  当前 CLI 文档已无 `--experimental-wasm-modules`。以上以 Node 官方文档为准，并已在本机复现
+- 影响文件：`../playbooks/js-wasm-interop.md`（新增）、`../references/failure-index.md`、
+  `../references/index.md`、`../SKILL.md`
+- 验证：moon `0.1.20260907` / Node `v26.8.1` 下逐条最小复现；wasm-gc 用例 5/5 与手写 JS 参考实现结果一致；
+  字符串零拷贝直通、`Int` 直通、数组返回为不透明引用均已实测确认
+
 ## 2026-09-10：补录工具链 / 运行时行为类坑位
 
 - 现象：`.mbtx` 默认 target、`println` 缓冲、`@fs.write_file` 的 create 语义、`moon add` 不升级、`@http.Request.path` 带 query 这几类问题都不产出编译器报错原文，按报错搜搜不到；`App::mount` 的裸 id 要求只在 `rabbita-fullstack-notes.md` 历史里，用 playbook 时看不到
