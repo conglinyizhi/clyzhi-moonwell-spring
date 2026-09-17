@@ -482,7 +482,7 @@ MOON_CC=gcc moon run --target native .
 
 ```bash
 moon build --noproxy '*'
-curl -x http://127.0.0.1:10738 --noproxy '*' -L <url>
+curl --noproxy '*' -L <url>
 ```
 
 #### JWT/base64 解码在 nightly 不稳定
