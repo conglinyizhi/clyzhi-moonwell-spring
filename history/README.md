@@ -28,6 +28,20 @@
 - 验证：moon `0.1.20260907` / Node `v26.8.1` 下逐条最小复现；wasm-gc 用例 5/5 与手写 JS 参考实现结果一致；
   字符串零拷贝直通、`Int` 直通、数组返回为不透明引用均已实测确认
 
+## 2026-09-17：新增「静默错解」一节（5 条）
+
+- 现象：写一个约 3k 行的 MoonBit 解析器时踩到一批**不报 error** 的坑：
+  `if v is k`（右侧是变量）永远匹配、只给一条 `unused_value` warning；`unused_mut` 是 Error（0015）直接 fail build；
+  按码元下标切片 `s[a:b]` 在代理对边界静默改边界（与官方文档写的「可能 raise」不一致）；
+  弃用 warning 一簇攒到近 70 条、把真信号淹掉；`@strconv` 是空包、core 没有 String→Int 入口
+- 结论：在 `../references/failure-index.md` 新增「静默错解：没有 error，只有容易淹掉的 warning」一节（5 条）；
+  `../references/index.md` 按错误表现补 4 条入口；`SKILL.md` 的错误表现提醒加一条（恒真/恒假逻辑）
+- 边界：`is` 与切片两条都把「官方文档说法 vs 本机 nightly 实测」写清楚了，以实测为准；
+  `@strconv` 一条明确写成「当前 core 无入口」而不是「MoonBit 不支持」，避免泛化
+- 影响文件：`../references/failure-index.md`、`../references/index.md`、`SKILL.md`
+- 验证：moon `0.1.20260916` 下逐条最小复现（`enum Kind { A; B } derive(Eq)`、`let mut xs : Array[Int] = []`、
+  `let s = "a\u{1F923}b"`、`moon ide doc "@strconv"`、`@bigint.BigInt::from_string("1234").to_int()`）
+
 ## 2026-09-10：补录工具链 / 运行时行为类坑位
 
 - 现象：`.mbtx` 默认 target、`println` 缓冲、`@fs.write_file` 的 create 语义、`moon add` 不升级、`@http.Request.path` 带 query 这几类问题都不产出编译器报错原文，按报错搜搜不到；`App::mount` 的裸 id 要求只在 `rabbita-fullstack-notes.md` 历史里，用 playbook 时看不到

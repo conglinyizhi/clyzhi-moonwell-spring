@@ -43,6 +43,10 @@
 - `moon add pkg@新版本` 后 `moon.mod` 没变：对已存在的依赖是 no-op，升级要 `--upgrade`；版本对比实验会拿到同一份代码；读 `failure-index.md`
 - `@http.Request.path` 匹配不上路由（如 `/?a=1` 返回 404）：它带 query string，路由前先按 `?` 切；读 `failure-index.md`
 - `App::mount` 抛 `$PanicError`、页面白屏，栈里有 `VDom::initialize`：参数是裸 id（内部用 `getElementById`），不能写 `"#app"`；读 `../playbooks/rabbita-fullstack.md`
+- 判定/过滤逻辑静默恒真或恒假、只伴随 `Warning unused_value`：`if v is k` 里的裸标识符是绑定新变量，永远匹配；常量用字面构造子、比较变量用 `==`；读 `failure-index.md`
+- `Error Warning (unused_mut)` 让 `moon check` 失败：`mut` 只用于改变量本身；Array/Map 的 push 与字段赋值不需要；读 `failure-index.md`
+- 按下标切片 `s[a:b]` 结果长度不对（emoji/非 ASCII 边界）：当前 nightly 不 raise 而是静默改边界，扫描器改用 `unsafe_substring`；读 `failure-index.md`
+- 想解析字符串里的整数：当前 core 无直接入口（`@strconv` 是空包），用 `@bigint.BigInt::from_string` 或自写循环；读 `failure-index.md`
 
 ## 资料优先级
 

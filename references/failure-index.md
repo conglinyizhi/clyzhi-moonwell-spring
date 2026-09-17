@@ -247,6 +247,59 @@
   - 修法：extern 只声明返回 `@js_async.Promise[T]`，async 留给调用方的 MoonBit 函数
   - 同族：`async () => ...` 也是 parse error（`async` 只能在 `fn` 前）；箭头函数靠上下文推断 async-ness，直接写 `() => { ... }`
 
+## 静默错解：没有 error，只有容易淹掉的 warning（2026-09-17 实测，moon 0.1.20260916）
+
+本节每条都以「会看到什么」开头。它们全部**不报 error**，是本轮写一个约 3k 行的解析器时踩到的；
+其中第 1 条的危险性远高于其余几条。
+
+- **`if v is k`（右侧是变量）永远匹配，逻辑静默走错分支**
+  - 现象：判定恒为真。编译器只给 `Warning [0002] unused_value`，文字是 `Unused variable 'k'`
+    （同一个 warning 名在别处显示为 `Unused function`），在几百条弃用 warning 里完全看不出来
+  - 根因：`is` 右侧的裸标识符是**绑定一个新变量**（等价于通配模式），不是与已有变量比较
+  - 修法：模式匹配常量必须用字面构造子/字面量（`v is A`、`v is Some(_)`）；
+    比较变量改用 `==`，且该类型要 `derive(Eq)`（否则报 `Type X does not implement trait Eq`）
+  - 最小复现：`enum Kind { A; B } derive(Eq)`，`let k = B`，`let v = A`；
+    `if v is k` → 命中；`if v == k` → 不命中（正确）
+  - 为什么危险：写在校验器、过滤器、规则引擎里，表现是「这条规则对所有输入都触发」
+    或「这个过滤器永远不生效」，而且没有报错可搜
+
+- **`unused_mut` 是 Error（0015），会让 `moon check` 直接失败，不是 warning**
+  - 现象：`Error: [0015]` + `Error Warning (unused_mut): The mutability of 'x' is never used, try remove 'mut'`
+  - 根因：Array / Map / struct 是引用语义，`push`、字段赋值都不需要 `mut`；
+    `mut` 只用于**给变量本身重新赋值**
+  - 修法：删掉 `mut`。标签写着 `Error Warning` 容易误判成「可忽略」
+  - 最小复现：`let mut xs : Array[Int] = []` + `xs.push(1)` 后 `moon check` 失败
+
+- **按 UTF-16 码元下标切片 `s[a:b]` 静默给出错误结果**
+  - 现象：`"a🤣b"[1:2]` 不报错，得到长度为 0 的 view（两个代理半区都被吞掉）；
+    而且因为该表达式不会 raise，包 `try` 会报 `Warning (unused_try): The body of this try expression never raises any error`
+  - 注意与官方文档的差异：`moonbit-agent-guide` 写的是「代理对边界可能 raise」，
+    当前 nightly 实测**不 raise，而是静默改掉切片边界**；以本机实测为准
+  - 连带坑：`get_char(i)` 是**码点**语义（`get_char(1)` 返回整个 emoji、`get_char(2)` 返回 `None`），
+    而 `s[i]` 与切片下标是**码元**语义，两者混用会错位
+  - 修法：按下标扫描的代码（词法器、字节级解析器、协议解析）统一用
+    `String::unsafe_substring(start=, end=)`；需要码点时用 `get_char`。
+    纯 ASCII 结构用码元访问、整段非 ASCII 负载直接当 `String` 搬运，是本轮采用的划分
+  - 最小复现：`let s = "a\u{1F923}b"`；`s[1:2].length()` 为 0，
+    `s.unsafe_substring(start=1, end=2).length()` 为 1
+
+- **弃用 warning 会淹没真信号（当前仍是 warning 0020 一簇）**
+  - 现象：本轮项目一次攒到近 70 条 warning，全部是这类，上面的 `is` 陷阱就藏在里面
+  - 常见替代：`StringBuilder::new()` → `StringBuilder()`；`starts_with`/`ends_with` →
+    `has_prefix`/`has_suffix`；`Char::from_int` → `Int::unsafe_to_char`（`Int::to_char` 返回 `Char?`）；
+    对 `derive(Show)` 的类型用 `inspect` 会被提示改用 `debug_inspect`
+  - 建议：新项目开工就把 warning 清零，否则 warning 数量一上去，静默语义错没有任何可发现的信号
+  - 查全集用 `moon explain --diagnostic`（不带参数）
+
+- **core 里没有 String → Int / Double 的解析入口，`@strconv` 是空包**
+  - 现象：`moon ide doc "@strconv"` 只回包名、没有任何符号；`strconv/pkg.generated.mbti` 只有注释骨架；
+    `Int` 上也没有 `from_string`
+  - 可用替代：`@bigint.BigInt::from_string("1234").to_int()`
+    （需在 `moon.pkg` import `"moonbitlang/core/bigint"`，`moon run -` 片段里写在 `import { ... }` 块中），
+    或自己写十进制循环
+  - 不要写成「MoonBit 不能解析整数」——是当前 core 没有直接入口，不是语言缺失
+  - 实测：`moon 0.1.20260916`，`@bigint` 路径返回值正确
+
 ## 工具链与运行时行为（没有编译器报错可搜）
 
 这些坑的共同点：命令能跑起来，或者报错文本本身极具误导性，按报错原文搜搜不到。

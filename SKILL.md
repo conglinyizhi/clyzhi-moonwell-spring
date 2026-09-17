@@ -44,6 +44,9 @@ description: >
 - **wasm-gc 导入 Node 报 `Cannot find package '_'`**：`imported-string-constants` 没指到 `wasm:js/string-constants`（官方 skill 的示例值 `"_"` 在 Node 下正好坏）；读 `playbooks/js-wasm-interop.md`
 - **`type incompatibility when transforming from/to JS`**：wasm-gc 没开 `use-js-builtin-string`；读 `playbooks/js-wasm-interop.md`
 - **看到一个熟悉的包名但不确定版本/API/target**：先 `moon search <query>`，再 `moon add` 到临时模块或读取 Mooncakes docs
+- **判定/过滤逻辑恒真或恒假、没有 error、只多一条容易看漏的 warning**：`is` 右边写成变量会绑定新变量而永远匹配；
+  `s[a:b]` 在非 ASCII 边界静默改边界而不报错；`unused_mut` 是 Error 而不是 warning。
+  读 `references/failure-index.md` 的「静默错解」一节
 
 ## 官方 skill 委派
 
