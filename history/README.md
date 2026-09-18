@@ -13,6 +13,15 @@
 - 验证：命令、页面或包版本
 ```
 
+## 2026-09-18：补录 async 运行时的信号失效坑
+
+- 现象：`async fn main` 挂起一次后进不挂起的紧循环，`SIGTERM` / `SIGINT` 完全失效，宽限期过后仍存活，只能 `SIGKILL`。
+  这类问题既没有编译器报错也没有 warning，按“SIGTERM 无效”在 MoonBit 侧搜不到任何说法
+- 结论：`../references/failure-index.md` 的「工具链与运行时行为」补一条，写清机制（信号被 `sigwait` 线程接管后投给事件循环、进程默认处置同时消失）、上游定性（`moonbitlang/async#612` 认定为 expected behavior）、绕法（`@signal.set_global_cancellation_signals([])`）、上游评论里的 API 单复数笔误，以及“编译器没有相关 warning”这一现状；`../references/index.md` 和 `SKILL.md` 各加一条入口
+- 边界：写成“协作式单线程运行时的后果”，不写成“async 有 bug”；上游倾向的 hard timeout 标为倾向，不写成已实现
+- 影响文件：`../references/failure-index.md`、`../references/index.md`、`SKILL.md`、`moonwell.toml`
+- 验证：moon `0.1.20260916` + `moonbitlang/async@0.22.1` 下复现三 lane（紧循环 `term_ignored` exit=137、每轮挂起 exit 143、非 async 忙等 exit 143）；`@signal` 导出签名核对 v0.22.1 tag 的 `pkg.generated.mbti`；`moon explain --diagnostic` 全集确认无相关 warning
+
 ## 2026-09-13：新增 JS / wasm 产物接入 Node 专项
 
 - 现象：把 MoonBit 产物接进 Node 时一连串报错都搜不到根因——`Cannot find package '_'`、

@@ -1,6 +1,6 @@
 # 常见坑：按错误表现检索
 
-这是索引，不是语言手册。命中后先读官方 skill 和当前工具输出；历史记录只解释“为什么曾经这样处理”。状态以 moon `0.1.20260904`（2026-09-04）复测为准。
+这是索引，不是语言手册。命中后先读官方 skill 和当前工具输出；历史记录只解释“为什么曾经这样处理”。复测版本以各条目自带标注为准（最新一轮：moon `0.1.20260916`，2026-09-18）。
 
 - 编译器报具体诊断码，或某 API 签名不确定：`moon explain --diagnostic <code-or-name>`、`moon ide doc`、官方 `moonbit-orientation`
 - **想查错误码 / warning 全集，不要另建索引**：`moon explain --diagnostic` 不带参数就会列出全部
@@ -303,7 +303,7 @@
 ## 工具链与运行时行为（没有编译器报错可搜）
 
 这些坑的共同点：命令能跑起来，或者报错文本本身极具误导性，按报错原文搜搜不到。
-状态以 moon `0.1.20260904`（2026-09-10 逐条复现）为准。
+该批以 moon `0.1.20260904`（2026-09-10 逐条复现）为准；后加条目自带版本标注。
 
 - **`.mbtx` 脚本默认编译目标是 wasm，不是 native**
   - 表现：`extern "c" fn` 报 `Error: [4156] extern "C" is unsupported in wasm backend`；
@@ -406,3 +406,28 @@
     `pub fn f_js(s : String) -> @js_async.Promise[String] { @js_async.Promise::from_async(() => { f(s) }) }`
   - 代价：async 会把整个协程运行时内联进产物。实测 20 行源码的 async 导出生成 **1,599 行 JS**，
     其中自己的代码只占 14 行。纯逻辑模块不要为了省事引入 async
+
+- **async 程序里不挂起的同步循环会让 `SIGTERM` / `SIGINT` 一起失效，进程只能 `kill -9`**
+  （moon `0.1.20260916` + `moonbitlang/async@0.22.1` 实测，2026-09-18）
+  - 表现：`async fn main` 先挂起一次让运行时起来，之后进 `while true { i = i + 1 }`。
+    发 `SIGTERM` 进程不退出，宽限期过后仍存活（`ps` 状态 `Rl`），最后只能 `SIGKILL`（exit 137）
+  - 后果：`timeout(1)`、CI 超时兜底、systemd `TimeoutStopSec`、supervisor 停服、容器 `stop` 全部无效
+  - 对照：非 async 的忙等循环、以及每轮都 `@async.pause()` 的循环，都在一个轮询周期内 exit 143（128+15）。
+    唯一变量是「运行时已起来 + 任务不再回到事件循环」
+  - 机制：`src/internal/event_loop/signal.c` 里主线程先屏蔽取消信号，另起一个 `sigwait_thread_worker`
+    线程 `sigwait` 收信号，再 `moonbitlang_async_notify_event_loop` 投给事件循环。
+    信号被接管的同时进程默认处置消失，连「再发一次信号就硬退」这条通用逃生通道也失效；
+    事件循环不跑就没人消费，对外表现为信号被静默吞掉
+  - 上游定性：`moonbitlang/async#612`，维护者回复为 expected behavior，根因归到
+    「async 程序里跑不挂起的重同步工作」；倾向的修法是 hard timeout
+    （收到取消信号后一段时间未被确认就强退），当前尚未实现
+  - 绕法：重的同步段之前调 `@signal.set_global_cancellation_signals([])`，把信号交回默认处置
+  - **API 名字坑**：上游评论里写成单数 `set_global_cancellation_signal`，实际是复数
+    `pub fn set_global_cancellation_signals(ReadOnlyArray[Signal]) -> Unit`
+    （v0.22.1 的 `src/signal/pkg.generated.mbti`）
+  - 编译器侧现状：`moon explain --diagnostic` 的全集里没有任何「不挂起 / 无挂起点」相关 warning，
+    这条只能按运行时行为检索，不要指望编译器提示
+  - 通用结论：协作式单线程运行时下，调度、取消、**信号处置**三条都只能靠挂起推进。
+    官方 README 的 Caveats 只写了前两条
+  - 最小复现：`conglinyizhi/moonbug-replay-sigterm-ignored-caused-by-non-yielding-async-loop`，
+    `make bug`（紧循环，命中）/ `make workaround`（每轮挂起，exit 143）/ `make contrast`（非 async 忙等，exit 143）

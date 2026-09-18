@@ -2,8 +2,8 @@
 # 本文件是 moonwell-spring 技能的唯一权威数据源。
 # 验证脚本读取本文件；知识导航和维护规则在 maintenance/ 中。
 
-tracked_version = "moon 0.1.20260904 (94521db 2026-09-04)"
-last_updated = "2026-09-07"
+tracked_version = "moon 0.1.20260916 (e4f45e4 2026-09-16)"
+last_updated = "2026-09-18"
 min_attributes = 23
 min_commands = 38
 patch_count = 25

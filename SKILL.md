@@ -47,6 +47,7 @@ description: >
 - **判定/过滤逻辑恒真或恒假、没有 error、只多一条容易看漏的 warning**：`is` 右边写成变量会绑定新变量而永远匹配；
   `s[a:b]` 在非 ASCII 边界静默改边界而不报错；`unused_mut` 是 Error 而不是 warning。
   读 `references/failure-index.md` 的「静默错解」一节
+- **`SIGTERM` / `Ctrl-C` 无效、只能 `kill -9`**：async 程序里有长时间不挂起的同步循环，信号被运行时接管后投不进事件循环；读 `references/failure-index.md`
 
 ## 官方 skill 委派
 

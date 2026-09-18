@@ -47,6 +47,7 @@
 - `Error Warning (unused_mut)` 让 `moon check` 失败：`mut` 只用于改变量本身；Array/Map 的 push 与字段赋值不需要；读 `failure-index.md`
 - 按下标切片 `s[a:b]` 结果长度不对（emoji/非 ASCII 边界）：当前 nightly 不 raise 而是静默改边界，扫描器改用 `unsafe_substring`；读 `failure-index.md`
 - 想解析字符串里的整数：当前 core 无直接入口（`@strconv` 是空包），用 `@bigint.BigInt::from_string` 或自写循环；读 `failure-index.md`
+- `SIGTERM` / `Ctrl-C` 收不到、进程只能 `kill -9`：async 程序里有长时间不挂起的同步循环，信号被运行时接管后投不进事件循环；读 `failure-index.md`
 
 ## 资料优先级
 
