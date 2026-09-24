@@ -3,6 +3,11 @@
 这是索引，不是语言手册。命中后先读官方 skill 和当前工具输出；历史记录只解释“为什么曾经这样处理”。复测版本以各条目自带标注为准（最新一轮：moon `0.1.20260916`，2026-09-18）。
 
 - 编译器报具体诊断码，或某 API 签名不确定：`moon explain --diagnostic <code-or-name>`、`moon ide doc`、官方 `moonbit-orientation`
+- **按报错原文检索要留神新版把标识符包进了反引号**（`0.1.20260921` 起）
+  - 现象：`unexpected token \`async\``、`name of \`let\`` / `Did you mean \`const\`?`、
+    `\`the action part of a matching case\``；旧记录里的原文没有反引号，照抄搜不到
+  - 做法：搜关键词（`unexpected token`、`Did you mean`）而不是整句
+
 - **想查错误码 / warning 全集，不要另建索引**：`moon explain --diagnostic` 不带参数就会列出全部
   （前半是约 90 条 warning 的 mnemonic/description/id/state，后半是 `Available non-warning diagnostics`），
   且它来自**本机编译器**本身，比抄一份静态索引可靠。`moon explain --diagnostic 4014`（可省 `E`）
@@ -11,7 +16,7 @@
   （必须是 `.com` + `/en/latest/`；`.cn` 同名路径与 `error_codes.html` 索引页都是 404，
   `_sources/...md` 是 Sphinx 原始源文件）
 - `moon ide doc` 返回 `unimplemented` / 没有预期 API：先确认模块、依赖、target 和本机符号索引；旧的 `@async/fs` 默认 target 陷阱已于 `0.1.20260904` 消失，详见 `moon-ide-doc-gotcha.md`
-- native `moon run` / `moon build` 找不到 C compiler、linker 或 `/usr/bin/lib.exe`：官方 `moonbit-c-binding`、`make-moonbit-c-bindings`；`0.1.20260904` 当前机器未设 `MOON_CC` 仍可复现，设置 `MOON_CC=gcc` 后通过。它是环境 / toolchain 选择问题，不要泛化成所有项目都会失败
+- native `moon run` / `moon build` 找不到 C compiler、linker 或 `/usr/bin/lib.exe`：官方 `moonbit-c-binding`、`make-moonbit-c-bindings`。它在 `0.1.20260904` 可复现（设置 `MOON_CC=gcc` 后通过），但 **`0.1.20260921` 已复现不了**：不设 `MOON_CC`、`moon clean` 后重建都能跑通，本机也没有 `/usr/bin/lib.exe`。保留为环境排查方向，但不要再当成「当前 nightly 仍会失败」，见 `../history/nightly-retest-20260921.md`
 - async trait 的同步方法调用 async 函数：旧的“编译通过但 impl 静默丢弃”已于 `0.1.20260904` 消失；当前报 `E4149 cannot call async function in non-async function`，见 `../history/legacy-patches.md` 的补丁23与 `../history/nightly-retest-20260904.md`
 - core 里找不到文件 I/O：仍未发现 `moonbitlang/core/fs`、`core/file` 或 `core/io`；使用 `moonbitlang/async/fs`。此结论在 `0.1.20260904` 复测仍成立
 - `no version satisfies requirement ...`：读 `../playbooks/mooncakes-publish.md`；registry 传播延迟需要真实发布链路才能复现或排除，当前不能标为已修复
@@ -159,6 +164,9 @@
 
 - **`Expr Type Mismatch: has type Int, wanted Double`**（`Json::number(n)` 里传 Int，error 4014）
   - 修法：`Json::number(n.to_double())`。`Json::number` 只收 Double
+  - 复测（2026-09-24，moon `0.1.20260921`）：**只对 Int 变量 / 表达式成立**。字面量写法
+    `Json::number(1)` 现在能编译（整数字面量在 Double 期望位被接受，`let x : Double = 1` 同理），
+    要复现必须 `let n : Int = 1` 再传 `n`。见 `../history/nightly-retest-20260921.md`
 
 - **`This expression has type Int, its value cannot be implicitly ignored (hint: use ignore(...) or let _ = ...)`**（error 4139，外层常伴随 `Expr Type Mismatch`）
   - 现象：`let y = if x > 0 { 1 }` —— **无 `else` 的 `if` 是 Unit 类型**
@@ -269,6 +277,8 @@
 - **`if v is k`（右侧是变量）永远匹配，逻辑静默走错分支**
   - 现象：判定恒为真。编译器只给 `Warning [0002] unused_value`，文字是 `Unused variable 'k'`
     （同一个 warning 名在别处显示为 `Unused function`），在几百条弃用 warning 里完全看不出来
+  - 复测（2026-09-24，moon `0.1.20260921`）：仍是静默恒真、`moon check` exit 0；
+    现在给**两条**同名 warning（`let k =` 与 `if e is k` 的绑定各一条），比旧记录的一条更容易淹掉
   - 根因：`is` 右侧的裸标识符是**绑定一个新变量**（等价于通配模式），不是与已有变量比较
   - 修法：模式匹配常量必须用字面构造子/字面量（`v is A`、`v is Some(_)`）；
     比较变量改用 `==`，且该类型要 `derive(Eq)`（否则报 `Type X does not implement trait Eq`）
@@ -312,14 +322,16 @@
   - 数真实条数要先 `moon clean && moon check`：`moon check` 是增量的，没改动过的文件那批 warning 不会重新打印
 
 
-- **core 里没有 String → Int / Double 的解析入口，`@strconv` 是空包**
-  - 现象：`moon ide doc "@strconv"` 只回包名、没有任何符号；`strconv/pkg.generated.mbti` 只有注释骨架；
-    `Int` 上也没有 `from_string`
-  - 可用替代：`@bigint.BigInt::from_string("1234").to_int()`
-    （需在 `moon.pkg` import `"moonbitlang/core/bigint"`，`moon run -` 片段里写在 `import { ... }` 块中），
-    或自己写十进制循环
-  - 不要写成「MoonBit 不能解析整数」——是当前 core 没有直接入口，不是语言缺失
-  - 实测：`moon 0.1.20260916`，`@bigint` 路径返回值正确
+- **`@strconv` 是空包；String → 数字的入口在 `@string` 里，不在 `@strconv`**
+  - 现象：`moon ide doc "@strconv"` 只回包名、没有任何符号（`0.1.20260921` 仍如此）；
+    顶层 `strconv/pkg.generated.mbti` 只有注释骨架（实体在 `core/internal/strconv`）
+  - 可用入口（2026-09-24 实测）：`@string.parse_int("1234")`、`parse_double`、`parse_int64`、
+    `parse_uint`、`parse_uint64`、`parse_bool`、`parse_bigint`（`core/string/pkg.generated.mbti`）
+  - 仍然不存在的名字：`Int::from_string`、`String::to_int`（`moon ide doc` 都是 `No results found`）
+  - 另一条可用路径：`@bigint.BigInt::from_string("1234").to_int()`（需 import `"moonbitlang/core/bigint"`）
+  - 不要写成「MoonBit 不能解析整数」——是顶层 `@strconv` 空着，不是语言缺失
+  - 旧结论「core 里没有 String → Int / Double 的直接入口」已于 `0.1.20260921` 失效；
+    何时加进来本轮未判定，见 `../history/nightly-retest-20260921.md`
 
 ## 工具链与运行时行为（没有编译器报错可搜）
 
@@ -343,7 +355,9 @@
   - 修法：同一模块每一行都写成「模块@版本/子包」，如 `"moonbitlang/async@0.20.1/http"`
 
 - **`moon build foo.mbtx` 的产物名是固定的 `single.exe`**
-  - 路径：`<脚本所在目录>/_build/native/debug/build/single/single.exe`
+  - 路径（2026-09-24 复测，moon `0.1.20260921`）：`_build/<脚本名>.mbtx/native/debug/build/single/single.exe`；
+    旧记录的 `<脚本所在目录>/_build/native/debug/build/single/single.exe` 已不对
+  - 同目录下多个 `.mbtx` 各有自己的 `single.exe`，**不再互相覆盖**（旧结论「同目录两个脚本会覆盖」已失效）
   - 后果：同一目录下编译两个 `.mbtx` 会互相覆盖
   - 用法：要同时持有多个脚本产物，build 完立刻 `cp` 成独立文件名再运行
 

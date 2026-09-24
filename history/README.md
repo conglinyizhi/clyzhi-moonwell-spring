@@ -80,6 +80,13 @@
 - 影响文件：`../references/failure-index.md`、`../SKILL.md`
 - 验证：moon `0.1.20260921`；同项目 `moon clean && moon check` 从 349 条到 0 条，160 个测试与本地 CI 全过；流式一问一答在改前 2s 无输出、改后 5s 内可读
 
+## 2026-09-24：moon `0.1.20260921` 复测
+
+- 范围：`failure-index` 里 20 条可低成本复现的断言，逐条最小片段实跑
+- 结论：3 条旧结论失效（native 的 `/usr/bin/lib.exe`、core 无 String→数字入口、同目录 `.mbtx` 产物互相覆盖）；其余仍成立，其中 3 条措辞要改（`Json::number` 只对 Int 变量报错、`if v is k` 的 warning 变两条、`.mbtx` 产物路径改成按脚本名分目录）
+- 影响文件：`../references/failure-index.md`、`nightly-retest-20260921.md`
+- 验证：moon `0.1.20260921`；单文件 `.mbtx` 与最小 `moon new` 项目直接实跑，未联网
+
 ## 既有历史入口
 
 完整的旧补丁详情已归档为 `legacy-patches.md`；`../references/patches.md` 只保留兼容编号和新入口。新内容优先写入分层文件，不再继续扩大旧补丁汇总。
