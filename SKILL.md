@@ -49,6 +49,10 @@ description: >
   读 `references/failure-index.md` 的「静默错解」一节
 - **`SIGTERM` / `Ctrl-C` 无效、只能 `kill -9`**：async 程序里有长时间不挂起的同步循环，信号被运行时接管后投不进事件循环；读 `references/failure-index.md`
 
+- **新环境 / CI 里 `moon build` 报 `Failed to resolve the module dependency graph` 或 `module was not found in the registry`**：注册表索引旧，先跑 `moon update`；读 `references/failure-index.md`
+- **成批 warning（0025 / 0079 / 0020）淹没真信号，且报告的条数少于实际处数**：按「修到 0」判断，别按数字对上；读 `references/failure-index.md`
+- **流式输出在管道里迟迟看不到（一次几百字节）、终端手测却正常**：`println` 在 stdout 是管道时块缓冲，改用 `@stdio.stdout.write`；读 `references/failure-index.md`
+
 ## 官方 skill 委派
 
 官方技能存在时优先让它们维护重复内容：

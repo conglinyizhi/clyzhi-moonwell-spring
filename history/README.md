@@ -73,6 +73,13 @@
 - 影响文件：`nightly-retest-20260904.md`、`../references/failure-index.md`、`../references/moon-ide-doc-gotcha.md`
 - 验证：最小模块 `moon check`、当前 async 包 target 映射、当前编译器 `E4149`
 
+## 2026-09-24：编译器警告族与 async CLI 行为
+
+- 现象：一个项目里攒到 349 条 warning（0025 / 0079 / 0020 为主），修的过程中发现报告的条数少于实际处数；另有 CLI 流式输出在管道里不可见
+- 结论：warning 判据改为「修到 0」；`derive` 的 Eq / Debug / ToJson 三簇要显式 `pub extend`（`ToJson` 是 prelude trait，不能写 `@json.` 前缀）；弃用 API 补录 `to_array`、`StringView::to_string`、`Bytes::from_array`，并记下「包级 `@bytes.from_array` 同样弃用」；`println` 块缓冲的流式修法；`@env` 无 `exit`
+- 影响文件：`../references/failure-index.md`、`../SKILL.md`
+- 验证：moon `0.1.20260921`；同项目 `moon clean && moon check` 从 349 条到 0 条，160 个测试与本地 CI 全过；流式一问一答在改前 2s 无输出、改后 5s 内可读
+
 ## 既有历史入口
 
 完整的旧补丁详情已归档为 `legacy-patches.md`；`../references/patches.md` 只保留兼容编号和新入口。新内容优先写入分层文件，不再继续扩大旧补丁汇总。

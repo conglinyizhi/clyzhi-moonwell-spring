@@ -127,10 +127,24 @@
     下游想用就走 `T::method(x)`，或让上游包加 `pub extend`
   - 实测：把 impl 挪进 trait 所在包后，下游用 `f.method()` 可编译
 
+- **`Warning (test_unqualified_package)`：`analyze` is implicitly imported in test. Use `@lib.analyze` instead.（0025，2026-09-24 实测 moon `0.1.20260921`）**
+  - 现象：测试文件里直接写被测包的公开名字（`analyze(...)`、`touched(...)`）能编译，但每条一个警告；
+    中等项目能攒到 200+ 条，把真信号淹掉
+  - 修法：测试里一律 `@lib.foo(...)`。纯枚举构造子（`Exec`、`Bash`、`Unsupported`）**不报这个警告**，要不要一起限定自定
+  - 条数会少报：实测报告 245 条、实际 247 处（按 245 改完后又冒出 2 条），见上一条的同一结论
+
 - **`Warning (implicit_impl_as_method)`：The methods m from `impl T for X` are implicit promoted as regular method for `X`. This behavior is deprecated and will be removed in the future.**
   - 现象：`x.m()` 能编译，但有 deprecated 警告，将来会失效
   - 修法：在定义 impl 的包里加 `pub extend X with T::{m}`；不想暴露就给它加 `#deprecated`
   - 实测：加 `pub extend` 后从 1 warning 降到 0 warnings
+  - 补录（2026-09-24，moon `0.1.20260921`）：`derive` 会带出三簇，且**报告条数少于实际处数**——
+    Eq 先报 77 条，修完 Eq 才冒出 Debug 的 49 条与 ToJson 的 21 条（实际 105 处）。
+    所以判据是「修到 0 warnings」，不是「跟报告的数字对上」
+  - trait 路径写错会直接编译失败：`ToJson` 是 **prelude** trait，写成 `@json.ToJson` 报
+    `Error: [4023] Trait ToJson not found in package 'json'`；正确写法是
+    `pub extend X with ToJson::{to_json}`。`Eq` 同样不带前缀，只有 `Debug` 要写 `@debug.Debug::{to_repr}`
+  - 实践：这类声明集中放一个 `extends.mbt`（上游就是 `core/*/extends.mbt` 这个写法），漏一个回来一条警告
+
 
 - **`Using let statement in 'the action part of a matching case' directly is not allowed. Consider moving the let binding into a curly braces block.`**（error 3002）
   - 连带：`Parse error, unexpected token '+', you may expect '=>'`
@@ -290,6 +304,13 @@
     对 `derive(Show)` 的类型用 `inspect` 会被提示改用 `debug_inspect`
   - 建议：新项目开工就把 warning 清零，否则 warning 数量一上去，静默语义错没有任何可发现的信号
   - 查全集用 `moon explain --diagnostic`（不带参数）
+  - 补录（2026-09-24，moon `0.1.20260921`）：`ArrayView::to_array()` → `to_owned()`；
+    `StringView::to_string()` → `to_owned()`（要展示就用 `Show::to_string` 或格式串）；
+    `@bytes.from_fixedarray(arr, len=)` → `Bytes::from_array(arr.exact_view(end=len))`
+  - 上面最后一条有反直觉处：**包级的 `@bytes.from_array` 本身也是弃用的**，写 `@bytes.from_array(...)`
+    仍旧报同一条警告，必须用类型限定形式 `Bytes::from_array(...)`
+  - 数真实条数要先 `moon clean && moon check`：`moon check` 是增量的，没改动过的文件那批 warning 不会重新打印
+
 
 - **core 里没有 String → Int / Double 的解析入口，`@strconv` 是空包**
   - 现象：`moon ide doc "@strconv"` 只回包名、没有任何符号；`strconv/pkg.generated.mbti` 只有注释骨架；
@@ -431,3 +452,50 @@
     官方 README 的 Caveats 只写了前两条
   - 最小复现：`conglinyizhi/moonbug-replay-sigterm-ignored-caused-by-non-yielding-async-loop`，
     `make bug`（紧循环，命中）/ `make workaround`（每轮挂起，exit 143）/ `make contrast`（非 async 忙等，exit 143）
+
+- **stdout 是管道时 `println` 会块缓冲：一次几百字节的流式输出看不见**
+  - 现象：一边喂 stdin 一边读 stdout 的子进程协议里，写完第一条后长时间拿不到任何输出；
+    攒够一个缓冲块才突然全出来。本地终端手测（stdout 是 tty）完全正常，只有被别的进程读时才露
+  - 根因：`println` 走运行时缓冲；`@stdio.stdout`（async）的 `write_once` 是直写 fd，不经缓冲
+  - 修法：要「写一条就能被读到」时用 `@stdio.stdout.write(@utf8.encode(text + "\n"))`；
+    **不要在同一进程里混用 `println` 与它**，两者缓冲策略不同会乱序
+  - 实测（moon `0.1.20260921`）：改前写完一行 2s 内无输出，改后不关 stdin 5s 内读到
+
+- **`@env` 里没有 `exit`：想返回非零退出码得自己绑 libc**
+  - 表现：翻遍 `@env` 的公开方法没有 `exit`，`@process` 也不能结束当前进程；写「用法错误返回 2」时卡住
+  - 修法：`extern "C" fn exit(code : Int) = "exit"`，再在需要处调用。
+    `moonbitlang/async` 包自己的示例就是这么声明的
+  - 连带：要保证 stderr 已写出再退出（同为直写则无此问题）
+
+- **trait 的方法不会出现在 `pkg.generated.mbti` 里**
+  - 现象：`grep 'pub fn' …/pkg.generated.mbti` 找不到读/写方法，误判成「这个包没有这个能力」
+  - 根因：生成物只列 `pub fn` 与 `pub impl`；trait 体内声明的方法（如 `Reader::read`、`read_until`）不在其中
+  - 修法：直接读 trait 源码或 `moon ide doc`
+  - 实测：`@io.Reader` 实际有 `read / read_exactly / read_some / read_until / read_all`，
+    mbti 里一条都搜不到，而 `read_until` 正好是分行读入需要的那个
+
+- **`ArrayView[Byte]` 与 `BytesView` 不是一个类型**
+  - 现象：`@buffer.Buffer::view()` 给 `ArrayView[Byte]`，而 `@utf8.decode_lossy`、`Writer::write_bytes`
+    要 `BytesView`；报错只说 `has type : ArrayView[Byte] wanted : BytesView`
+  - 修法：`Buffer::to_bytes()` 取 `Bytes` 再切片，或按需 `Bytes::from_array(view)`
+  - 实测：每块一次拷贝（64 KiB 级）远低于分析成本，不值得为省这次拷贝绕路
+
+- **`moon fmt` 会把 `///` 文档块与 `///|` 拆开，等于把文档从被描述项上摘下来**
+  - 现象：在文件顶部的 `///` 文档块后插入新声明，fmt 在两块之间补一个空行，文档不再附着到原函数
+  - 修法：新声明放在文档块**之前**，或让文档块紧跟目标项
+  - 判据：`moon fmt` 连跑两次无差异才算定型；`git diff --exit-code` 只在已提交的树上才能说明问题
+
+- **新环境 / CI 里 `moon build` 解析不到依赖：注册表索引是旧的**
+  - 表现：`Error: Failed to resolve the module dependency graph`，
+    `Failed to resolve registry dependency 'moonbitlang/async' for module …: module was not found in the registry`，
+    附带 `Warning: you may need to run 'moon update' to update the registry`
+  - 根因：curl 安装脚本装出的工具链带着旧索引；本机开发环境早就 update 过，所以只有 CI 会踩
+  - 修法：装完工具链先 `moon update`（命令本身官方 `moonbit-agent-guide` 已收录，这里只记症状）
+  - 实测：同一个 commit，加这一步之前 CI 的 Build 失败、之后全绿
+
+- **`@json` 的构造子名与元数不是直觉那套**
+  - 现象：`Json::Bool` 报 `The type Json does not have the constructor Bool`；
+    `Json::Object(..)` 报 `requires 1 arguments, but is given 0 arguments` 并警告 `..` 多余
+  - 实际：变体是 `Null / True / False / Number / String / Array / Object`，各吃一个位置参数，
+    写 `Object(_)`、`Array(_)`、`Number(_)` 即可
+  - 解析用 `@json.parse(view)`，错误类型是 `ParseError`，捕获写成**后缀式** `expr catch { err => … }`
