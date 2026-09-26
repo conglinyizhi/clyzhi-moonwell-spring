@@ -10,6 +10,7 @@
 - Rabbita + moonback 全栈网站：`../playbooks/rabbita-fullstack.md`
 - 产物接入 Node / JS（js 与 wasm-gc target、`#export_name`、`extern "js"`）：`../playbooks/js-wasm-interop.md`
 - Mooncakes 发布：`../playbooks/mooncakes-publish.md`
+- 产物要一个静态二进制分发（不绑宿主 glibc）：`../playbooks/native-static-link.md`
 - 更新本 skill：`../maintenance/update-skill.md`
 - 历史复盘：`../history/README.md`
 
@@ -19,7 +20,7 @@
 - `moon publish` 当前检查通过、解包检查失败：开发树与发布包不一致，或依赖不可解析；读 `../playbooks/mooncakes-publish.md`
 - `moon search` 找不到刚发布的版本：registry 索引尚未刷新；读 `../playbooks/mooncakes-publish.md`
 - `moon ide doc` 空结果或 `unimplemented`：项目上下文、依赖、target 或本机符号索引问题；旧 `@async/fs` 默认 target 陷阱已于 `0.1.20260904` 消失。读 `failure-index.md`、`moon-ide-doc-gotcha.md`，并加载官方 `moonbit-orientation`
-- native link / C compiler 错误：native 工具链或 FFI 配置；加载官方 C binding skill
+- native link / C compiler 错误：native 工具链或 FFI 配置；加载官方 C binding skill；若目的是静态链接，读 `../playbooks/native-static-link.md`
 - SSR 首屏无数据、页面资源 404 或热更新开发体验异常：Rabbita / moonback 流程误用；读 `../playbooks/rabbita-fullstack.md`
 - sync trait 方法调用 async 函数：`0.1.20260904` 已从静默失效改为 `E4149` 诊断；读 `failure-index.md`，再查官方文档
 - `Cannot create values of the read-only type` / `There is no record definition with the fields`：跨包构造需要 `pub(all) struct` / `pub(all) enum`；读 `failure-index.md`

@@ -26,6 +26,7 @@ description: >
 - 发布包、升级版本、下游依赖找不到新版本：读 `playbooks/mooncakes-publish.md`
 - 从零做 Rabbita / moonback 网站：读 `playbooks/rabbita-fullstack.md`；先问是否要跑完整开发流程
 - C FFI、native 胶水或跨平台桌面集成：读官方 `moonbit-c-binding` / `make-moonbit-c-bindings`，再查 `references/failure-index.md`
+- 要静态链接或单个二进制分发：读 `playbooks/native-static-link.md`
 - 把产物接进 Node / JS（js 或 wasm-gc target、`#export_name`、`extern "js"`、导入 .wasm 报错）：读 `playbooks/js-wasm-interop.md`
 - 更新月井之春本身：读 `maintenance/update-skill.md`
 - 追溯某次历史决定或失败：读 `history/README.md`；不要把历史记录当作当前规则

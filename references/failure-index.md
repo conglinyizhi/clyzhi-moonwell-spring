@@ -16,6 +16,10 @@
   （必须是 `.com` + `/en/latest/`；`.cn` 同名路径与 `error_codes.html` 索引页都是 404，
   `_sources/...md` 是 Sphinx 原始源文件）
 - `moon ide doc` 返回 `unimplemented` / 没有预期 API：先确认模块、依赖、target 和本机符号索引；旧的 `@async/fs` 默认 target 陷阱已于 `0.1.20260904` 消失，详见 `moon-ide-doc-gotcha.md`
+- 想要静态链接、但找不到开关：`--help` 没有任何相关选项、`CC=` 被忽略、`moon.pkg` 里写
+  `link` 报 `Unexpected key 'link'`、`MOON_CC="cc -static"` 报 `failed to find executable`。
+  原生后端最后一步是普通 C 链接，可用包装脚本接管，读 `../playbooks/native-static-link.md`
+  （复测 `0.1.20260923`：真实项目静态链接并实跑通过）
 - native `moon run` / `moon build` 找不到 C compiler、linker 或 `/usr/bin/lib.exe`：官方 `moonbit-c-binding`、`make-moonbit-c-bindings`。它在 `0.1.20260904` 可复现（设置 `MOON_CC=gcc` 后通过），但 **`0.1.20260921` 已复现不了**：不设 `MOON_CC`、`moon clean` 后重建都能跑通，本机也没有 `/usr/bin/lib.exe`。保留为环境排查方向，但不要再当成「当前 nightly 仍会失败」，见 `../history/nightly-retest-20260921.md`
 - async trait 的同步方法调用 async 函数：旧的“编译通过但 impl 静默丢弃”已于 `0.1.20260904` 消失；当前报 `E4149 cannot call async function in non-async function`，见 `../history/legacy-patches.md` 的补丁23与 `../history/nightly-retest-20260904.md`
 - core 里找不到文件 I/O：仍未发现 `moonbitlang/core/fs`、`core/file` 或 `core/io`；使用 `moonbitlang/async/fs`。此结论在 `0.1.20260904` 复测仍成立

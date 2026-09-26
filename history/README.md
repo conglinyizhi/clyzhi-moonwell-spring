@@ -87,6 +87,14 @@
 - 影响文件：`../references/failure-index.md`、`nightly-retest-20260921.md`
 - 验证：moon `0.1.20260921`；单文件 `.mbtx` 与最小 `moon new` 项目直接实跑，未联网
 
+## 2026-09-26：原生后端静态链接
+
+- 范围：`moon build` 的静态链接能力，逐条试错并给出可用绕过
+- 结论：没有官方开关（`--help` 无选项、`CC=` 被忽略、`link` 键不存在、`MOON_CC` 不解析参数）；
+  用包装脚本 `cc`（`exec cc -static "$@"`）+ 同目录 `ar` 软链 + `MOON_CC` 指向它即可静态链接
+- 影响文件：`../playbooks/native-static-link.md`、`../references/failure-index.md`、`../references/index.md`、`../SKILL.md`
+- 验证：moon `0.1.20260923`；hello world 与带 C stub 的真实项目都产出 `statically linked` 并实跑通过
+
 ## 既有历史入口
 
 完整的旧补丁详情已归档为 `legacy-patches.md`；`../references/patches.md` 只保留兼容编号和新入口。新内容优先写入分层文件，不再继续扩大旧补丁汇总。
